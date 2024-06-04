@@ -6,7 +6,6 @@ import numpy as np
 import numpy.linalg as la
 import torch
 
-import models
 from param_utils import init_params
 from data_utils import load_mnist_data, rotate_images, setup_dataloaders
 
@@ -25,8 +24,8 @@ if __name__ == '__main__':
     setup_dataloaders(data, params, traineval=True)
 
     # Load the network
-    net = models.Mnist_6L_CNN()
-    loadfile_path = '../saved-models/mnist-6l-cnn--vert.pth'
+    net = params.Net()
+    loadfile_path = '../saved-models/%s--vert.pth' % params.net_name
     net.load_state_dict(torch.load(loadfile_path))
 
     # Compute covariance matrix on forward pass
@@ -46,5 +45,6 @@ if __name__ == '__main__':
     print(np.sort(lamda))
 
     # Save the covariance matrix
-    savefile_name = '../saved-models/cov--rot-%.2f' % args.covrot
+    savefile_name = ('../saved-models/cov--%s--rot-%.2f' % (params.net_name,
+                                                            args.covrot))
     np.save(savefile_name, cov)

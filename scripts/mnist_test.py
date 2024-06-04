@@ -7,7 +7,6 @@ import numpy as np
 import torch
 import pandas as pd
 
-import models
 from param_utils import init_params
 from data_utils import load_mnist_data, rotate_images, setup_dataloaders
 
@@ -18,22 +17,24 @@ def compute_performance(args):
     data = load_mnist_data(params)
 
     # Load the network to be evaluated
-    savefile_name = 'mnist-6l-cnn'
+    savefile_name = params.net_name
     if args.noisy:
         savefile_name += '--noisy' + ('-' + args.noisy if args.noisy is not True else '')
-        savefile_name += '--covrot-%.2f' % args.covrot
-    else:
+        if args.noisy != 'zero':
+            savefile_name += '--covrot-%.2f' % args.covrot
+    if not args.noisy or args.noisy == 'zero':
         savefile_name += ('--vert' if args.rotate is None else
                           '--rot-%.2f' % args.rotate)
     savefile_name += '.pth'
 
     if args.noisy:
-        oldnet = models.Mnist_6L_CNN()
-        oldnet.load_state_dict(torch.load('../saved-models/mnist-6l-cnn--vert.pth'))
-        cov = 0 * np.eye(32)
-        net = models.Noisy_Mnist_6L_CNN(oldnet, cov)
+        oldnet = params.Net()
+        oldnet.load_state_dict(torch.load('../saved-models/%s--vert.pth'
+                                          % params.net_name))
+        cov = np.zeros((32, 32))
+        net = params.NoisyNet(oldnet, cov)
     else:
-        net = models.Mnist_6L_CNN()
+        net = params.Net()
     net.load_state_dict(torch.load('../saved-models/%s' % savefile_name))
 
     # Evaluate on various fixed rotations of the test data
@@ -68,7 +69,12 @@ if __name__ == '__main__':
     if args.rotate == 'all':
         perfs = {}
         for train_angle in [0, 45, 60]:
-            args.rotate = train_angle if train_angle else None
+            if train_angle:
+                args.rotate = train_angle
+                args.noisy = 'zero'
+            else:
+                args.rotate = None
+                args.noisy = False
             perfs[train_angle] = compute_performance(args)
         performance = pd.concat(perfs).unstack()
         performance.index.set_names('train_angle', inplace=True)
