@@ -61,14 +61,14 @@ if __name__ == '__main__':
         loadfile_path = '../saved-models/%s--vert.pth' % params.net_name
         oldnet.load_state_dict(torch.load(loadfile_path))
         if args.noisy == 'identity':
-            cov = np.eye(32)
+            cov = np.eye(params.NoisyNet.noise_dim)
         elif args.noisy == 'zero':
-            cov = np.zeros((32, 32))
+            cov = 0 * np.eye(params.NoisyNet.noise_dim)
         else:
             cov = np.load('../saved-models/cov--%s--rot-%.2f.npy'
                           % (params.net_name, args.covrot))
         if args.noisy == 'diagonal':
-            cov *= np.eye(32)
+            cov *= np.eye(cov.shape[0])
         net = params.NoisyNet(oldnet, cov)
     else:
         net = params.Net()

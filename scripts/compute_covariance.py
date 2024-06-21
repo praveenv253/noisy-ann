@@ -33,7 +33,7 @@ if __name__ == '__main__':
     images, labels = next(iter(data.trainloader))
     with torch.no_grad():
         net(images.reshape((-1, 1, 28, 28)))  # Forward pass
-        outs.append(net.outputs[-3].numpy())
+        outs.append(net.noisy_layer_output().numpy())
     outs = np.array(outs).squeeze()
     cov = np.cov(outs.T)
 

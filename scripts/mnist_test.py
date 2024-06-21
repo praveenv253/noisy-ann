@@ -31,7 +31,7 @@ def compute_performance(args):
         oldnet = params.Net()
         oldnet.load_state_dict(torch.load('../saved-models/%s--vert.pth'
                                           % params.net_name))
-        cov = np.zeros((32, 32))
+        cov = 0 * np.eye(params.NoisyNet.noise_dim)
         net = params.NoisyNet(oldnet, cov)
     else:
         net = params.Net()
