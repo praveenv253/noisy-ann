@@ -37,8 +37,8 @@ def train(net, data, params):
                 loss_vals.append(running_loss)
                 running_loss = 0.0
 
-    plt.plot(loss_vals)
-    plt.show()
+    #plt.plot(loss_vals)
+    #plt.show()
 
 
 if __name__ == '__main__':
@@ -57,26 +57,27 @@ if __name__ == '__main__':
 
     # Initialize the network and train
     if args.noisy:
-        oldnet = params.Net()
-        loadfile_path = '../saved-models/%s--vert.pth' % params.net_name
+        oldnet = params.Net(params)
+        loadfile_path = '../saved-models/%s--%s--vert.pth' % (params.net_name, params.activn)
         oldnet.load_state_dict(torch.load(loadfile_path))
         if args.noisy == 'identity':
             cov = np.eye(params.NoisyNet.noise_dim)
         elif args.noisy == 'zero':
             cov = 0 * np.eye(params.NoisyNet.noise_dim)
         else:
-            cov = np.load('../saved-models/cov--%s--rot-%.2f.npy'
-                          % (params.net_name, args.covrot))
+            cov = np.load('../saved-models/cov--%s--%s--rot-%.2f.npy'
+                          % (params.net_name, params.activn, args.covrot))
         if args.noisy == 'diagonal':
             cov *= np.eye(cov.shape[0])
         net = params.NoisyNet(oldnet, cov)
     else:
-        net = params.Net()
+        net = params.Net(params)
     train(net, data, params)
     print('Finished Training')
 
     # Save the trained model
     savefile_name = params.net_name
+    savefile_name += '--%s' % params.activn
     if args.noisy:
         savefile_name += '--noisy' + ('-' + args.noisy if args.noisy is not True else '')
         if args.noisy != 'zero':

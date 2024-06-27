@@ -9,8 +9,9 @@ import torch.nn.functional as F
 
 # Define the neural network architecture
 class Mnist_6L_CNN(nn.Module):
-    def __init__(self):
+    def __init__(self, params=None):
         super(Mnist_6L_CNN, self).__init__()
+
         self.conv1 = nn.Conv2d(1, 32, kernel_size=3, padding=1)
         self.fc1 = nn.Linear(32*14*14, 128)  # 32 channels, image size 14x14 after max pooling
         self.fc2 = nn.Linear(128, 64)
@@ -18,13 +19,18 @@ class Mnist_6L_CNN(nn.Module):
         self.fc4 = nn.Linear(32, 16)
         self.fc5 = nn.Linear(16, 10)
 
+        try:
+            self.activn = (F.tanh if params.activn == 'tanh' else F.relu)
+        except:
+            self.activn = F.relu
+
     def forward(self, x):
-        conv1_out = F.relu(self.conv1(x))
+        conv1_out = self.activn(self.conv1(x))
         maxpool1_out = F.max_pool2d(conv1_out, kernel_size=2, stride=2)
-        fc1_out = F.relu(self.fc1(maxpool1_out.view(-1, 32*14*14)))
-        fc2_out = F.relu(self.fc2(fc1_out))
-        fc3_out = F.relu(self.fc3(fc2_out))
-        fc4_out = F.relu(self.fc4(fc3_out))
+        fc1_out = self.activn(self.fc1(maxpool1_out.view(-1, 32*14*14)))
+        fc2_out = self.activn(self.fc2(fc1_out))
+        fc3_out = self.activn(self.fc3(fc2_out))
+        fc4_out = self.activn(self.fc4(fc3_out))
         fc5_out = self.fc5(fc4_out)
 
         # Save outputs
@@ -57,6 +63,7 @@ class Noisy_Mnist_6L_CNN(nn.Module):
             oldnet(x)
             return oldnet.outputs[-3]
         self.oldfwd = oldfwd
+        self.activn = oldnet.activn
 
         #self.oldnet = Net()
         #self.oldnet.load_state_dict(oldnet.state_dict())
@@ -72,7 +79,7 @@ class Noisy_Mnist_6L_CNN(nn.Module):
         noise = self.rng.multivariate_normal(np.zeros(self.cov.shape[0]),
                                              self.cov, size=old_out.shape[0]
                                             ).astype(np.float32)
-        fc4_out = F.relu(self.fc4(old_out + torch.tensor(noise)))
+        fc4_out = self.activn(self.fc4(old_out + torch.tensor(noise)))
         fc5_out = self.fc5(fc4_out)
 
         #self.outputs = self.oldnet.outputs[:-2] + [fc4_out, fc5_out]
@@ -80,8 +87,9 @@ class Noisy_Mnist_6L_CNN(nn.Module):
 
 
 class Mnist_6L_CNN_v2(nn.Module):
-    def __init__(self):
+    def __init__(self, params=None):
         super(Mnist_6L_CNN_v2, self).__init__()
+
         self.conv1 = nn.Conv2d(1, 6, kernel_size=5, padding=2)  # Image remains 28x28 after this
         # max pool down to 14x14 after this
         self.conv2 = nn.Conv2d(6, 16, kernel_size=3, padding=1)  # Image remains 14x14
@@ -92,14 +100,19 @@ class Mnist_6L_CNN_v2(nn.Module):
         self.fc4 = nn.Linear(32, 16)
         self.fc5 = nn.Linear(16, 10)
 
+        try:
+            self.activn = (F.tanh if params.activn == 'tanh' else F.relu)
+        except:
+            self.activn = F.relu
+
     def forward(self, x):
-        conv1_out = F.relu(self.conv1(x))
+        conv1_out = self.activn(self.conv1(x))
         maxpool1_out = F.max_pool2d(conv1_out, kernel_size=2, stride=2)
-        conv2_out = F.relu(self.conv2(maxpool1_out))
-        conv3_out = F.relu(self.conv3(conv2_out))
+        conv2_out = self.activn(self.conv2(maxpool1_out))
+        conv3_out = self.activn(self.conv3(conv2_out))
         maxpool3_out = F.max_pool2d(conv3_out, kernel_size=2, stride=2)
-        fc3_out = F.relu(self.fc3(maxpool3_out.view(-1, 16*5*5)))
-        fc4_out = F.relu(self.fc4(fc3_out))
+        fc3_out = self.activn(self.fc3(maxpool3_out.view(-1, 16*5*5)))
+        fc4_out = self.activn(self.fc4(fc3_out))
         fc5_out = self.fc5(fc4_out)
 
         # Save outputs
@@ -132,6 +145,7 @@ class Noisy_Mnist_6L_CNN_v2(nn.Module):
             oldnet(x)
             return oldnet.outputs[-3]
         self.oldfwd = oldfwd
+        self.activn = oldnet.activn
 
         #self.oldnet = Net()
         #self.oldnet.load_state_dict(oldnet.state_dict())
@@ -147,7 +161,7 @@ class Noisy_Mnist_6L_CNN_v2(nn.Module):
         noise = self.rng.multivariate_normal(np.zeros(self.cov.shape[0]),
                                              self.cov, size=old_out.shape[0]
                                             ).astype(np.float32)
-        fc4_out = F.relu(self.fc4(old_out + torch.tensor(noise)))
+        fc4_out = self.activn(self.fc4(old_out + torch.tensor(noise)))
         fc5_out = self.fc5(fc4_out)
 
         #self.outputs = self.oldnet.outputs[:-2] + [fc4_out, fc5_out]
@@ -155,8 +169,9 @@ class Noisy_Mnist_6L_CNN_v2(nn.Module):
 
 
 class Mnist_5L_CNN_v3(nn.Module):
-    def __init__(self, activn=None):
+    def __init__(self, params=None):
         super(Mnist_5L_CNN_v3, self).__init__()
+
         self.conv1 = nn.Conv2d(1, 6, kernel_size=5, padding=2)  # Image remains 28x28 after this
         # max pool down to 14x14 after this
         self.conv2 = nn.Conv2d(6, 16, kernel_size=5, padding=0) # Image becomes 10x10
@@ -165,7 +180,12 @@ class Mnist_5L_CNN_v3(nn.Module):
         self.fc4 = nn.Linear(32, 16)
         self.fc5 = nn.Linear(16, 10)
 
-        self.activn = (F.tanh if activn == 'tanh' else F.relu)
+        try:
+            self.activn = (F.tanh if params.activn == 'tanh' else F.relu)
+        except:
+            self.activn = F.relu
+
+        assert self.activn == F.tanh
 
     def forward(self, x):
         conv1_out = self.activn(self.conv1(x))
@@ -211,6 +231,8 @@ class Noisy_Mnist_5L_CNN_v3(nn.Module):
             return oldnet.outputs[1]
         self.oldfwd = oldfwd
         self.activn = oldnet.activn
+
+        assert self.activn == F.tanh
 
         #self.oldnet = Net()
         #self.oldnet.load_state_dict(oldnet.state_dict())

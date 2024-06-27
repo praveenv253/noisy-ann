@@ -24,8 +24,10 @@ if __name__ == '__main__':
     setup_dataloaders(data, params, traineval=True)
 
     # Load the network
-    net = params.Net()
-    loadfile_path = '../saved-models/%s--vert.pth' % params.net_name
+    net = params.Net(params)
+    #loadfile_path = '../saved-models/%s--vert.pth' % params.net_name
+    loadfile_path = '../saved-models/%s--%s--vert.pth' % (params.net_name,
+                                                          params.activn)
     net.load_state_dict(torch.load(loadfile_path))
 
     # Compute covariance matrix on forward pass
@@ -45,6 +47,6 @@ if __name__ == '__main__':
     print(np.sort(lamda))
 
     # Save the covariance matrix
-    savefile_name = ('../saved-models/cov--%s--rot-%.2f' % (params.net_name,
-                                                            args.covrot))
+    savefile_name = ('../saved-models/cov--%s--%s--rot-%.2f'
+                     % (params.net_name, params.activn, args.covrot))
     np.save(savefile_name, cov)

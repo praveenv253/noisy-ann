@@ -18,6 +18,7 @@ def compute_performance(args):
 
     # Load the network to be evaluated
     savefile_name = params.net_name
+    savefile_name += '--%s' % params.activn
     if args.noisy:
         savefile_name += '--noisy' + ('-' + args.noisy if args.noisy is not True else '')
         if args.noisy != 'zero':
@@ -28,13 +29,13 @@ def compute_performance(args):
     savefile_name += '.pth'
 
     if args.noisy:
-        oldnet = params.Net()
-        oldnet.load_state_dict(torch.load('../saved-models/%s--vert.pth'
-                                          % params.net_name))
+        oldnet = params.Net(params)
+        oldnet.load_state_dict(torch.load('../saved-models/%s--%s--vert.pth'
+                                          % (params.net_name, params.activn)))
         cov = 0 * np.eye(params.NoisyNet.noise_dim)
         net = params.NoisyNet(oldnet, cov)
     else:
-        net = params.Net()
+        net = params.Net(params)
     net.load_state_dict(torch.load('../saved-models/%s' % savefile_name))
 
     # Evaluate on various fixed rotations of the test data
