@@ -52,39 +52,51 @@ if __name__ == '__main__':
 
     params = init_params()
 
-    # Load and rotate training dataset
+    # Load the original unrotated dataset
     data = load_mnist_data(params)
-    data.trainset = rotate_images(data.trainset, args.covrot, random=True)
     setup_dataloaders(data, params, traineval=True)
 
-    images, labels = next(iter(data.trainloader))
+    # Load data and create the rotated training dataset
+    data_rot = load_mnist_data(params)
+    data_rot.trainset = rotate_images(data_rot.trainset, args.covrot,
+                                      random=True)
+    setup_dataloaders(data_rot, params, traineval=True)
+
+    images, _ = next(iter(data.trainloader))
+    images_rot, labels = next(iter(data_rot.trainloader))
     labels_numpy = labels.numpy()
     digits = list(labels.unique().numpy())
     digit_indices = {digit: np.where(labels_numpy == digit)[0]
                      for digit in digits}
 
-    # Load the network
+    # Create two networks, one to store the original activations and one to
+    # store the rotated activations
     net = params.Net(params)
+    net_rot = params.Net(params)
     loadfile_path = '../saved-models/%s--%s--vert.pth' % (params.net_name,
                                                           params.activn)
     net.load_state_dict(torch.load(loadfile_path))
+    net_rot.load_state_dict(torch.load(loadfile_path))
 
     # Do a forward pass of the entire dataset
     with torch.no_grad():
         net(images.reshape((-1, 1, 28, 28)))  # Forward pass
+        net_rot(images_rot.reshape((-1, 1, 28, 28)))  # Forward pass
 
     # For each layer, we take every ordered pair of digits and compute the
     # alignment of the covariance of the second w.r.t. the first
     rets = []
     for layer in range(len(net.outputs)):
         print(layer, end=': ', flush=True)
-        activations = net.outputs[layer]  # shape (num_samples, num_features)
+        activations = (net_rot.outputs[layer] - net.outputs[layer])
+        # activations now has shape (num_samples, num_features)
 
         # Pre-compute covariance matrices and eigenvalue decompositions
         covs = {}
         eigvals = {}
         eigvecs = {}
         for digit in digits:
+            print(digit, end=' ', flush=True)
             activation = activations[digit_indices[digit]]
             covs[digit] = np.cov(activation.T)
             lamda, v = la.eigh(covs[digit])
