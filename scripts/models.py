@@ -18,6 +18,8 @@ class Mnist_6L_CNN(nn.Module):
         self.fc3 = nn.Linear(64, 32)
         self.fc4 = nn.Linear(32, 16)
         self.fc5 = nn.Linear(16, 10)
+        self.outputs = []    # Excludes convolutional output before max-pooling
+        self.all_outputs = []
 
         try:
             self.activn = (F.tanh if params.activn == 'tanh' else F.relu)
@@ -34,12 +36,14 @@ class Mnist_6L_CNN(nn.Module):
         fc5_out = self.fc5(fc4_out)
 
         # Save outputs
-        self.outputs = [conv1_out, maxpool1_out, fc1_out, fc2_out, fc3_out,
-                        fc4_out, fc5_out]
+        self.outputs = [maxpool1_out.view(x.shape[0], -1), fc1_out, fc2_out,
+                        fc3_out, fc4_out, fc5_out]
+        self.all_outputs = [conv1_out, maxpool1_out, fc1_out, fc2_out, fc3_out,
+                            fc4_out, fc5_out]
         return fc5_out
 
     def noisy_layer_output(self):
-        return self.outputs[-3]
+        return self.all_outputs[-3]
 
 
 class Noisy_Mnist_6L_CNN(nn.Module):
@@ -61,12 +65,10 @@ class Noisy_Mnist_6L_CNN(nn.Module):
         # ensures that the oldnet doesn't get included in the NoisyNet's params
         def oldfwd(x):
             oldnet(x)
-            return oldnet.outputs[-3]
+            return oldnet.all_outputs[-3]
         self.oldfwd = oldfwd
         self.activn = oldnet.activn
 
-        #self.oldnet = Net()
-        #self.oldnet.load_state_dict(oldnet.state_dict())
         self.cov = cov
         self.rng = np.random.default_rng()
         self.fc4 = nn.Linear(32, 16)
@@ -99,6 +101,8 @@ class Mnist_6L_CNN_v2(nn.Module):
         self.fc3 = nn.Linear(16*5*5, 32)  # 16 channels, image size 5x5 after max pooling
         self.fc4 = nn.Linear(32, 16)
         self.fc5 = nn.Linear(16, 10)
+        self.outputs = []    # Excludes convolutional output before max-pooling
+        self.all_outputs = []
 
         try:
             self.activn = (F.tanh if params.activn == 'tanh' else F.relu)
@@ -116,12 +120,16 @@ class Mnist_6L_CNN_v2(nn.Module):
         fc5_out = self.fc5(fc4_out)
 
         # Save outputs
-        self.outputs = [conv1_out, maxpool1_out, conv2_out, conv3_out, maxpool3_out,
+        self.outputs = [maxpool1_out.view(x.shape[0], -1),
+                        conv2_out.view(x.shape[0], -1),
+                        maxpool3_out.view(x.shape[0], -1),
                         fc3_out, fc4_out, fc5_out]
+        self.all_outputs = [conv1_out, maxpool1_out, conv2_out, conv3_out,
+                            maxpool3_out, fc3_out, fc4_out, fc5_out]
         return fc5_out
 
     def noisy_layer_output(self):
-        return self.outputs[-3]
+        return self.all_outputs[-3]
 
 
 class Noisy_Mnist_6L_CNN_v2(nn.Module):
@@ -143,7 +151,7 @@ class Noisy_Mnist_6L_CNN_v2(nn.Module):
         # ensures that the oldnet doesn't get included in the NoisyNet's params
         def oldfwd(x):
             oldnet(x)
-            return oldnet.outputs[-3]
+            return oldnet.all_outputs[-3]
         self.oldfwd = oldfwd
         self.activn = oldnet.activn
 
@@ -179,6 +187,8 @@ class Mnist_5L_CNN_v3(nn.Module):
         self.fc3 = nn.Linear(16*5*5, 32)  # 16 channels, image size 5x5 after max pooling
         self.fc4 = nn.Linear(32, 16)
         self.fc5 = nn.Linear(16, 10)
+        self.outputs = []    # Excludes convolutional output before max-pooling
+        self.all_outputs = []
 
         try:
             self.activn = (F.tanh if params.activn == 'tanh' else F.relu)
@@ -197,16 +207,19 @@ class Mnist_5L_CNN_v3(nn.Module):
         fc5_out = self.fc5(fc4_out)
 
         # Save outputs
-        self.outputs = [conv1_out, maxpool1_out, conv2_out, maxpool2_out,
+        self.outputs = [maxpool1_out.view(x.shape[0], -1),
+                        maxpool2_out.view(x.shape[0], -1),
                         fc3_out, fc4_out, fc5_out]
+        self.all_outputs = [conv1_out, maxpool1_out, conv2_out, maxpool2_out,
+                            fc3_out, fc4_out, fc5_out]
         return fc5_out
 
     def noisy_layer_output(self):
         """
         Output of layer to be used to compute covariance.
         """
-        shape = self.outputs[1].shape
-        return self.outputs[1].reshape((shape[0], shape[1] * shape[2] * shape[3]))
+        shape = self.all_outputs[1].shape
+        return self.all_outputs[1].reshape((shape[0], shape[1] * shape[2] * shape[3]))
 
 
 class Noisy_Mnist_5L_CNN_v3(nn.Module):
@@ -228,14 +241,10 @@ class Noisy_Mnist_5L_CNN_v3(nn.Module):
         # ensures that the oldnet doesn't get included in the NoisyNet's params
         def oldfwd(x):
             oldnet(x)
-            return oldnet.outputs[1]
+            return oldnet.all_outputs[1]
         self.oldfwd = oldfwd
         self.activn = oldnet.activn
 
-        assert self.activn == F.tanh
-
-        #self.oldnet = Net()
-        #self.oldnet.load_state_dict(oldnet.state_dict())
         self.cov = cov
         self.rng = np.random.default_rng()
         self.conv2 = nn.Conv2d(6, 16, kernel_size=5, padding=0) # Image becomes 10x10
