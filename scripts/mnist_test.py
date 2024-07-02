@@ -69,7 +69,8 @@ if __name__ == '__main__':
 
     if args.rotate == 'all':
         perfs = {}
-        for train_angle in [0, 45, 60]:
+        #for train_angle in [0, 45, 60]:
+        for train_angle in [0, 60]:
             if train_angle:
                 args.rotate = train_angle
                 args.noisy = 'zero'

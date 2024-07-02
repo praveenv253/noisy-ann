@@ -26,10 +26,11 @@ if __name__ == '__main__':
     num_layers = df['layer'].nunique()
 
     df_ = df.set_index(['layer', 'digit1', 'digit2'])['alignment']
-    for i in range(num_layers):
+    for i in sorted(df['layer'].unique()):
         plt.figure()
         sns.heatmap(data=df_.xs(i, level='layer').unstack(), square=True,
                     annot=True, fmt='.2f', cmap='vlag', vmin=-1, vmax=1)
+        plt.title('layer = %d' % i)
 
     plt.figure()
     df_ = df.reset_index().drop(columns=['digit1', 'digit2']).set_index('layer')
