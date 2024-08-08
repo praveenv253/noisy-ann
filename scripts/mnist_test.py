@@ -26,12 +26,12 @@ def compute_performance(args):
     if not args.noisy or args.noisy == 'zero':
         savefile_name += ('--vert' if args.rotate is None else
                           '--rot-%.2f' % args.rotate)
-    savefile_name += '.pth'
+    savefile_name += '--%d.pth' % args.iter
 
     if args.noisy:
         oldnet = params.Net(params)
-        oldnet.load_state_dict(torch.load('../saved-models/%s--%s--vert.pth'
-                                          % (params.net_name, params.activn)))
+        oldnet.load_state_dict(torch.load('../saved-models/%s--%s--vert--%d.pth'
+                                          % (params.net_name, params.activn, args.iter)))
         cov = 0 * np.eye(params.NoisyNet.noise_dim)
         net = params.NoisyNet(oldnet, cov)
     else:
@@ -65,7 +65,9 @@ if __name__ == '__main__':
     parser.add_argument('--rotate', default=None)
     parser.add_argument('--noisy', nargs='?', const=True, default=False)
     parser.add_argument('--covrot', type=float, default=60.0)
+    parser.add_argument('--iter', type=int, default=0)
     args = parser.parse_args()
+    params = init_params()
 
     if args.rotate == 'all':
         perfs = {}
@@ -85,4 +87,16 @@ if __name__ == '__main__':
             args.rotate = float(args.rotate)
         performance = compute_performance(args)
 
-    print(performance)
+    #print(performance)
+    savefile_name = params.net_name
+    savefile_name += '--%s' % params.activn
+    if args.noisy:
+        savefile_name += '--noisy' + ('-' + args.noisy if args.noisy is not True else '')
+        if args.noisy != 'zero':
+            savefile_name += '--covrot-%.2f' % args.covrot
+    if not args.noisy or args.noisy == 'zero':
+        savefile_name += ('--vert' if args.rotate is None else
+                          '--rot-%.2f' % args.rotate)
+    savefile_name += '--%d.pkl' % args.iter
+
+    performance.to_pickle('../saved-models/perf--%s' % savefile_name)

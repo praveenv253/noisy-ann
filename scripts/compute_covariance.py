@@ -14,6 +14,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--covrot', type=float, default=60.0,
                         help='Rotation angle to use for computing covariance')
+    parser.add_argument('--iter', type=int, default=0)
     args = parser.parse_args()
 
     params = init_params()
@@ -31,8 +32,8 @@ if __name__ == '__main__':
     # Load the network
     net = params.Net(params)
     #loadfile_path = '../saved-models/%s--vert.pth' % params.net_name
-    loadfile_path = '../saved-models/%s--%s--vert.pth' % (params.net_name,
-                                                          params.activn)
+    loadfile_path = '../saved-models/%s--%s--vert--%d.pth' % (params.net_name,
+                                                              params.activn, args.iter)
     net.load_state_dict(torch.load(loadfile_path))
 
     # Compute covariance matrix on forward pass
@@ -61,6 +62,6 @@ if __name__ == '__main__':
     print(np.sort(lamda))
 
     # Save the covariance matrix
-    savefile_name = ('../saved-models/cov--%s--%s--rot-%.2f'
-                     % (params.net_name, params.activn, args.covrot))
+    savefile_name = ('../saved-models/cov--%s--%s--rot-%.2f--%d'
+                     % (params.net_name, params.activn, args.covrot, args.iter))
     np.save(savefile_name, cov)

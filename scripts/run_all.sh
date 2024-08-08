@@ -1,9 +1,13 @@
 #!/bin/bash -x
 
-./mnist_train.py
-./mnist_train.py --noisy zero --rotate 45
-./mnist_train.py --noisy zero --rotate 60
-./compute_covariance.py
-./mnist_train.py --noisy
-./mnist_test.py --rotate all
-./mnist_test.py --noisy
+for i in {1..10}; do
+	./mnist_train.py --iter $i
+	#./mnist_train.py --noisy zero --rotate 45 --iter $i
+	./mnist_train.py --noisy zero --rotate 60 --iter $i
+	./mnist_test.py --rotate all --iter $i
+	./compute_covariance.py --iter $i
+	./mnist_train.py --noisy --iter $i
+	./mnist_test.py --noisy --iter $i
+	./mnist_train.py --noisy diagonal --iter $i
+	./mnist_test.py --noisy diagonal --iter $i
+done

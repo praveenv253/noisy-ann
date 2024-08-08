@@ -46,6 +46,7 @@ if __name__ == '__main__':
     parser.add_argument('--rotate', type=float, default=None)
     parser.add_argument('--noisy', nargs='?', const=True, default=False)
     parser.add_argument('--covrot', type=float, default=60.0)
+    parser.add_argument('--iter', type=int, default=0)
     args = parser.parse_args()
 
     params = init_params()
@@ -58,15 +59,15 @@ if __name__ == '__main__':
     # Initialize the network and train
     if args.noisy:
         oldnet = params.Net(params)
-        loadfile_path = '../saved-models/%s--%s--vert.pth' % (params.net_name, params.activn)
+        loadfile_path = '../saved-models/%s--%s--vert--%d.pth' % (params.net_name, params.activn, args.iter)
         oldnet.load_state_dict(torch.load(loadfile_path))
         if args.noisy == 'identity':
             cov = np.eye(params.NoisyNet.noise_dim)
         elif args.noisy == 'zero':
             cov = 0 * np.eye(params.NoisyNet.noise_dim)
         else:
-            cov = np.load('../saved-models/cov--%s--%s--rot-%.2f.npy'
-                          % (params.net_name, params.activn, args.covrot))
+            cov = np.load('../saved-models/cov--%s--%s--rot-%.2f--%d.npy'
+                          % (params.net_name, params.activn, args.covrot, args.iter))
         if args.noisy == 'diagonal':
             cov *= np.eye(cov.shape[0])
         net = params.NoisyNet(oldnet, cov)
@@ -85,5 +86,5 @@ if __name__ == '__main__':
     if not args.noisy or args.noisy == 'zero':
         savefile_name += ('--vert' if args.rotate is None else
                           '--rot-%.2f' % args.rotate)
-    savefile_name += '.pth'
+    savefile_name += '--%d.pth' % args.iter
     torch.save(net.state_dict(), '../saved-models/%s' % savefile_name)
