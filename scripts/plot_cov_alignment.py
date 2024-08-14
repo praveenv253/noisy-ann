@@ -13,12 +13,7 @@ from param_utils import Params
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--covrot', type=int, default=60,
-                        help='Rotation angle to create a distribution')
-    args = parser.parse_args()
-
-    params = Params(args)
+    params = Params(args_needed=['covrot', 'iter'])
 
     df = pd.read_csv(params.alignment_filename())
     num_layers = df['layer'].nunique()

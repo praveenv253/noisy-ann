@@ -50,32 +50,7 @@ def compute_performance(params):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--rotate', default=None)
-    parser.add_argument('--noisy', nargs='?', const=True, default=False)
-    parser.add_argument('--covrot', type=int, default=60)
-    parser.add_argument('--iter', type=int, default=0)
-    args = parser.parse_args()
+    params = Params(args_needed=['rotate', 'noisy', 'covrot', 'iter'])
 
-    if args.rotate == 'all':
-        perfs = {}
-        #for train_angle in [0, 45, 60]:
-        for train_angle in [0, 60]:
-            if train_angle:
-                args.rotate = train_angle
-                args.noisy = 'zero'
-            else:
-                args.rotate = None
-                args.noisy = False
-            params = Params(args)
-            perfs[train_angle] = compute_performance(params)
-        performance = pd.concat(perfs).unstack()
-        performance.index.set_names('train_angle', inplace=True)
-    else:
-        if args.rotate:
-            args.rotate = int(args.rotate)
-        params = Params(args)
-        performance = compute_performance(params)
-
-    #print(performance)
+    performance = compute_performance(params)
     performance.to_pickle(params.perf_filename())

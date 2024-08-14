@@ -42,24 +42,8 @@ def train(net, data, params):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--rotate', type=int, default=None,
-                        help='Rotation angle in degrees to apply to all training data')
-    parser.add_argument('--noisy', nargs='?', const=True, default=False,
-        help=('Instantiate the noiseless model if false. If true, instantiate '
-              'the noisy model and load the covariance matrix computed using the '
-              'rotation given by `covrot`. If zero, use the noisy model but add '
-              'no noise (i.e., to train only post-noise layers). If diagonal, use '
-              'only the diagonal of the covariance matrix. If identity, use an '
-              'identity covariance matrix.'))
-    parser.add_argument('--covrot', type=int, default=60,
-                        help=('Rotation angle used to compute the covariance matrix '
-                              'for adding noise while training.'))
-    parser.add_argument('--iter', type=int, default=0,
-                        help='Iteration number for multiple runs')
-    args = parser.parse_args()
-
-    params = Params(args)
+    params = Params(args_needed=['rotate', 'noisy', 'covrot', 'iter'])
+    args = params.args
 
     data = load_mnist_data(params)
     if args.rotate is not None:

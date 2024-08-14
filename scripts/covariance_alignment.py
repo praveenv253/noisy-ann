@@ -45,12 +45,7 @@ def compute_alignment(eigvecs_a, cov_b, eigvals_b):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--covrot', type=int, default=60,
-                        help='Rotation angle to create a distribution')
-    args = parser.parse_args()
-
-    params = Params(args)
+    params = Params(args_needed=['covrot', 'iter'])
 
     # Load the original unrotated dataset
     data = load_mnist_data(params)
@@ -58,7 +53,7 @@ if __name__ == '__main__':
 
     # Load data and create the rotated training dataset
     data_rot = load_mnist_data(params)
-    data_rot.trainset = rotate_images(data_rot.trainset, args.covrot,
+    data_rot.trainset = rotate_images(data_rot.trainset, params.args.covrot,
                                       random=True)
     setup_dataloaders(data_rot, params, traineval=True)
 

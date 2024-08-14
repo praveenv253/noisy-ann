@@ -3,11 +3,12 @@
 import os
 import models
 from functools import wraps
+import argparse
 
 
 class Params:
 
-    def __init__(self, args):
+    def __init__(self, args_needed):
         self.batch_size = 64
         self.num_epochs = 10
         self.adam_lr = 0.001
@@ -33,8 +34,30 @@ class Params:
         #self.activn = 'relu'
         self.activn = 'tanh'
 
-        self.args = args
         self.savedir = '../saved'
+
+        parser = argparse.ArgumentParser()
+        if 'rotate' in args_needed:
+            parser.add_argument('--rotate', type=int, default=None,
+                                help='Rotation angle in degrees to apply to training data')
+        if 'noisy' in args_needed:
+            parser.add_argument('--noisy', nargs='?', const=True, default=False,
+                help=('Instantiate the noiseless model if false. If true, instantiate '
+                      'the noisy model and load the covariance matrix computed using the '
+                      'rotation given by `covrot`. If zero, use the noisy model but add '
+                      'no noise (i.e., to train only post-noise layers). If diagonal, use '
+                      'only the diagonal of the covariance matrix. If identity, use an '
+                      'identity covariance matrix.'))
+        if 'covrot' in args_needed:
+            parser.add_argument('--covrot', type=int, default=60,
+                                help=('Rotation angle used to compute the covariance matrix '
+                                      'for adding noise while training.'))
+        if 'iter' in args_needed:
+            parser.add_argument('--iter', type=int, default=0,
+                                help='Iteration number for multiple runs')
+
+        self.args = parser.parse_args()
+
 
     def _pathify(func):
         @wraps(func)
