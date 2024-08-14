@@ -9,7 +9,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from param_utils import init_params
+from param_utils import Params
 
 
 if __name__ == '__main__':
@@ -18,11 +18,9 @@ if __name__ == '__main__':
                         help='Rotation angle to create a distribution')
     args = parser.parse_args()
 
-    params = init_params()
+    params = Params(args)
 
-    savefile_name = ('../saved-models/covariance-alignment--%s--%s--%.2f.csv'
-                     % (params.net_name, params.activn, args.covrot))
-    df = pd.read_csv(savefile_name)
+    df = pd.read_csv(params.alignment_filename())
     num_layers = df['layer'].nunique()
 
     df_ = df.set_index(['layer', 'digit1', 'digit2'])['alignment']

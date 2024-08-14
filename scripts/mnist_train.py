@@ -5,7 +5,7 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 
-from param_utils import init_params
+from param_utils import Params
 from data_utils import load_mnist_data, rotate_images, setup_dataloaders
 
 
@@ -43,13 +43,23 @@ def train(net, data, params):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--rotate', type=float, default=None)
-    parser.add_argument('--noisy', nargs='?', const=True, default=False)
-    parser.add_argument('--covrot', type=float, default=60.0)
-    parser.add_argument('--iter', type=int, default=0)
+    parser.add_argument('--rotate', type=float, default=None,
+                        help='Rotation angle in degrees to apply to all training data')
+    parser.add_argument('--noisy', nargs='?', const=True, default=False,
+        help=('Instantiate the noiseless model if false. If true, instantiate '
+              'the noisy model and load the covariance matrix computed using the '
+              'rotation given by `covrot`. If zero, use the noisy model but add '
+              'no noise (i.e., to train only post-noise layers). If diagonal, use '
+              'only the diagonal of the covariance matrix. If identity, use an '
+              'identity covariance matrix.'))
+    parser.add_argument('--covrot', type=float, default=60.0,
+                        help=('Rotation angle used to compute the covariance matrix '
+                              'for adding noise while training.'))
+    parser.add_argument('--iter', type=int, default=0,
+                        help='Iteration number for multiple runs')
     args = parser.parse_args()
 
-    params = init_params()
+    params = Params(args)
 
     data = load_mnist_data(params)
     if args.rotate is not None:
@@ -59,15 +69,13 @@ if __name__ == '__main__':
     # Initialize the network and train
     if args.noisy:
         oldnet = params.Net(params)
-        loadfile_path = '../saved-models/%s--%s--vert--%d.pth' % (params.net_name, params.activn, args.iter)
-        oldnet.load_state_dict(torch.load(loadfile_path))
+        oldnet.load_state_dict(torch.load(params.vert_model_filename()))
         if args.noisy == 'identity':
             cov = np.eye(params.NoisyNet.noise_dim)
         elif args.noisy == 'zero':
             cov = 0 * np.eye(params.NoisyNet.noise_dim)
         else:
-            cov = np.load('../saved-models/cov--%s--%s--rot-%.2f--%d.npy'
-                          % (params.net_name, params.activn, args.covrot, args.iter))
+            cov = np.load(params.cov_filename())
         if args.noisy == 'diagonal':
             cov *= np.eye(cov.shape[0])
         net = params.NoisyNet(oldnet, cov)
@@ -77,14 +85,4 @@ if __name__ == '__main__':
     print('Finished Training')
 
     # Save the trained model
-    savefile_name = params.net_name
-    savefile_name += '--%s' % params.activn
-    if args.noisy:
-        savefile_name += '--noisy' + ('-' + args.noisy if args.noisy is not True else '')
-        if args.noisy != 'zero':
-            savefile_name += '--covrot-%.2f' % args.covrot
-    if not args.noisy or args.noisy == 'zero':
-        savefile_name += ('--vert' if args.rotate is None else
-                          '--rot-%.2f' % args.rotate)
-    savefile_name += '--%d.pth' % args.iter
-    torch.save(net.state_dict(), '../saved-models/%s' % savefile_name)
+    torch.save(net.state_dict(), params.model_filename())

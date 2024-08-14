@@ -6,7 +6,7 @@ import numpy as np
 import numpy.linalg as la
 import torch
 
-from param_utils import init_params
+from param_utils import Params
 from data_utils import load_mnist_data, rotate_images, setup_dataloaders
 
 
@@ -17,7 +17,7 @@ if __name__ == '__main__':
     parser.add_argument('--iter', type=int, default=0)
     args = parser.parse_args()
 
-    params = init_params()
+    params = Params(args)
 
     # Load the original unrotated dataset
     data = load_mnist_data(params)
@@ -31,10 +31,7 @@ if __name__ == '__main__':
 
     # Load the network
     net = params.Net(params)
-    #loadfile_path = '../saved-models/%s--vert.pth' % params.net_name
-    loadfile_path = '../saved-models/%s--%s--vert--%d.pth' % (params.net_name,
-                                                              params.activn, args.iter)
-    net.load_state_dict(torch.load(loadfile_path))
+    net.load_state_dict(torch.load(params.vert_model_filename()))
 
     # Compute covariance matrix on forward pass
     images, _ = next(iter(data.trainloader))
@@ -62,6 +59,4 @@ if __name__ == '__main__':
     print(np.sort(lamda))
 
     # Save the covariance matrix
-    savefile_name = ('../saved-models/cov--%s--%s--rot-%.2f--%d'
-                     % (params.net_name, params.activn, args.covrot, args.iter))
-    np.save(savefile_name, cov)
+    np.save(params.cov_filename(), cov)

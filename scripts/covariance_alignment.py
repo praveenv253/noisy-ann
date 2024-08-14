@@ -8,7 +8,7 @@ import scipy.linalg as la
 import pandas as pd
 import torch
 
-from param_utils import init_params
+from param_utils import Params
 from data_utils import load_mnist_data, rotate_images, setup_dataloaders
 
 
@@ -50,7 +50,7 @@ if __name__ == '__main__':
                         help='Rotation angle to create a distribution')
     args = parser.parse_args()
 
-    params = init_params()
+    params = Params(args)
 
     # Load the original unrotated dataset
     data = load_mnist_data(params)
@@ -73,8 +73,7 @@ if __name__ == '__main__':
     # store the rotated activations
     net = params.Net(params)
     net_rot = params.Net(params)
-    loadfile_path = '../saved-models/%s--%s--vert.pth' % (params.net_name,
-                                                          params.activn)
+    loadfile_path = params.vert_model_filename()
     net.load_state_dict(torch.load(loadfile_path))
     net_rot.load_state_dict(torch.load(loadfile_path))
 
@@ -118,6 +117,4 @@ if __name__ == '__main__':
     alignment_stats = pd.DataFrame.from_records(rets).set_index(['layer', 'digit1', 'digit2'])
 
     # Save the covariance matrix
-    savefile_name = ('../saved-models/covariance-alignment--%s--%s--%.2f.csv'
-                     % (params.net_name, params.activn, args.covrot))
-    alignment_stats.to_csv(savefile_name)
+    alignment_stats.to_csv(params.alignment_filename())

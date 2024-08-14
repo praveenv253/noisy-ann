@@ -6,37 +6,24 @@ import argparse
 import numpy as np
 import torch
 import pandas as pd
+#from sklearn.metrics import confusion_matrix
 
-from param_utils import init_params
+from param_utils import Params
 from data_utils import load_mnist_data, rotate_images, setup_dataloaders
 
 
-def compute_performance(args):
-    params = init_params()
-
+def compute_performance(params):
     data = load_mnist_data(params)
 
     # Load the network to be evaluated
-    savefile_name = params.net_name
-    savefile_name += '--%s' % params.activn
-    if args.noisy:
-        savefile_name += '--noisy' + ('-' + args.noisy if args.noisy is not True else '')
-        if args.noisy != 'zero':
-            savefile_name += '--covrot-%.2f' % args.covrot
-    if not args.noisy or args.noisy == 'zero':
-        savefile_name += ('--vert' if args.rotate is None else
-                          '--rot-%.2f' % args.rotate)
-    savefile_name += '--%d.pth' % args.iter
-
-    if args.noisy:
+    if params.args.noisy:
         oldnet = params.Net(params)
-        oldnet.load_state_dict(torch.load('../saved-models/%s--%s--vert--%d.pth'
-                                          % (params.net_name, params.activn, args.iter)))
+        oldnet.load_state_dict(torch.load(params.vert_model_filename()))
         cov = 0 * np.eye(params.NoisyNet.noise_dim)
         net = params.NoisyNet(oldnet, cov)
     else:
         net = params.Net(params)
-    net.load_state_dict(torch.load('../saved-models/%s' % savefile_name))
+    net.load_state_dict(torch.load(params.model_filename()))
 
     # Evaluate on various fixed rotations of the test data
     performance = []
@@ -55,6 +42,9 @@ def compute_performance(args):
 
         recall = correct / total
         performance.append({'test_angle': test_angle, 'recall': recall})
+        #conf_mat = confusion_matrix(labels.numpy(), predicted.numpy())
+        #performance.append({'test_angle': test_angle, 'recall': recall,
+        #                    'conf_mat': conf_mat})
 
     performance = pd.DataFrame.from_records(performance).set_index('test_angle')
     return performance
@@ -67,7 +57,6 @@ if __name__ == '__main__':
     parser.add_argument('--covrot', type=float, default=60.0)
     parser.add_argument('--iter', type=int, default=0)
     args = parser.parse_args()
-    params = init_params()
 
     if args.rotate == 'all':
         perfs = {}
@@ -79,24 +68,15 @@ if __name__ == '__main__':
             else:
                 args.rotate = None
                 args.noisy = False
-            perfs[train_angle] = compute_performance(args)
+            params = Params(args)
+            perfs[train_angle] = compute_performance(params)
         performance = pd.concat(perfs).unstack()
         performance.index.set_names('train_angle', inplace=True)
     else:
         if args.rotate:
             args.rotate = float(args.rotate)
-        performance = compute_performance(args)
+        params = Params(args)
+        performance = compute_performance(params)
 
     #print(performance)
-    savefile_name = params.net_name
-    savefile_name += '--%s' % params.activn
-    if args.noisy:
-        savefile_name += '--noisy' + ('-' + args.noisy if args.noisy is not True else '')
-        if args.noisy != 'zero':
-            savefile_name += '--covrot-%.2f' % args.covrot
-    if not args.noisy or args.noisy == 'zero':
-        savefile_name += ('--vert' if args.rotate is None else
-                          '--rot-%.2f' % args.rotate)
-    savefile_name += '--%d.pkl' % args.iter
-
-    performance.to_pickle('../saved-models/perf--%s' % savefile_name)
+    performance.to_pickle(params.perf_filename())
