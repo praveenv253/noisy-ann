@@ -13,8 +13,6 @@ from data_utils import load_mnist_data, rotate_images, setup_dataloaders
 
 
 def compute_performance(params):
-    data = load_mnist_data(params)
-
     # Load the network to be evaluated
     if params.args.noisy:
         oldnet = params.Net(params)
@@ -28,6 +26,7 @@ def compute_performance(params):
     # Evaluate on various fixed rotations of the test data
     performance = []
     for test_angle in [0, 15, 30, 45, 60, 90]:
+        data = load_mnist_data(params)
         if test_angle > 0:
             data.testset = rotate_images(data.testset, test_angle)
         setup_dataloaders(data, params)
@@ -54,7 +53,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--rotate', default=None)
     parser.add_argument('--noisy', nargs='?', const=True, default=False)
-    parser.add_argument('--covrot', type=float, default=60.0)
+    parser.add_argument('--covrot', type=int, default=60)
     parser.add_argument('--iter', type=int, default=0)
     args = parser.parse_args()
 
@@ -74,7 +73,7 @@ if __name__ == '__main__':
         performance.index.set_names('train_angle', inplace=True)
     else:
         if args.rotate:
-            args.rotate = float(args.rotate)
+            args.rotate = int(args.rotate)
         params = Params(args)
         performance = compute_performance(params)
 

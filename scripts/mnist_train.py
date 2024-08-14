@@ -43,7 +43,7 @@ def train(net, data, params):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--rotate', type=float, default=None,
+    parser.add_argument('--rotate', type=int, default=None,
                         help='Rotation angle in degrees to apply to all training data')
     parser.add_argument('--noisy', nargs='?', const=True, default=False,
         help=('Instantiate the noiseless model if false. If true, instantiate '
@@ -52,7 +52,7 @@ if __name__ == '__main__':
               'no noise (i.e., to train only post-noise layers). If diagonal, use '
               'only the diagonal of the covariance matrix. If identity, use an '
               'identity covariance matrix.'))
-    parser.add_argument('--covrot', type=float, default=60.0,
+    parser.add_argument('--covrot', type=int, default=60,
                         help=('Rotation angle used to compute the covariance matrix '
                               'for adding noise while training.'))
     parser.add_argument('--iter', type=int, default=0,

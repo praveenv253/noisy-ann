@@ -12,7 +12,7 @@ from data_utils import load_mnist_data, rotate_images, setup_dataloaders
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--covrot', type=float, default=60.0,
+    parser.add_argument('--covrot', type=int, default=60,
                         help='Rotation angle to use for computing covariance')
     parser.add_argument('--iter', type=int, default=0)
     args = parser.parse_args()

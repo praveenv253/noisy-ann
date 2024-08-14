@@ -12,9 +12,10 @@ import seaborn as sns
 if __name__ == '__main__':
     df = pd.DataFrame()
     dfs = {}
-    for i in range(1, 10):
-        d = pd.read_pickle('../saved-models/perf--mnist-5l-cnn-v3.1--tanh--noisy-zero--rot-60.00--%d.pkl' % i)
+    for i in range(1, 2):
+        d = pd.read_pickle('../saved/perf--mnist-5l-cnn-v3.1--tanh--noisy-zero--rot-60--%d.pkl' % i)
         dfs[i] = d
+
     baseline_df = pd.concat(dfs)
     baseline_df = baseline_df.droplevel(0, axis=1)
     baseline_df.index.set_names(['iter', 'cond'], inplace=True)
@@ -22,8 +23,8 @@ if __name__ == '__main__':
     baseline_df = baseline_df.replace({'cond': {0: 'Lower baseline', 60: 'Upper baseline'}}).set_index(['iter', 'cond'])
 
     dfs = {}
-    for i in range(1, 10):
-        d = pd.read_pickle('../saved-models/perf--mnist-5l-cnn-v3.1--tanh--noisy--covrot-60.00--%d.pkl' % i)
+    for i in range(1, 2):
+        d = pd.read_pickle('../saved/perf--mnist-5l-cnn-v3.1--tanh--noisy--covrot-60--%d.pkl' % i)
         dfs[i] = d
     result_df = pd.concat(dfs, axis=1).T
     result_df.index.set_names(['iter', 'cond'], inplace=True)
@@ -32,8 +33,8 @@ if __name__ == '__main__':
 
 
     dfs = {}
-    for i in range(1, 10):
-        d = pd.read_pickle('../saved-models/perf--mnist-5l-cnn-v3.1--tanh--noisy-diagonal--covrot-60.00--%d.pkl' % i)
+    for i in range(1, 2):
+        d = pd.read_pickle('../saved/perf--mnist-5l-cnn-v3.1--tanh--noisy-diagonal--covrot-60--%d.pkl' % i)
         dfs[i] = d
     control_df = pd.concat(dfs, axis=1).T
     control_df.index.set_names(['iter', 'cond'], inplace=True)

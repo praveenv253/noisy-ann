@@ -46,7 +46,7 @@ def compute_alignment(eigvecs_a, cov_b, eigvals_b):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--covrot', type=float, default=60.0,
+    parser.add_argument('--covrot', type=int, default=60,
                         help='Rotation angle to create a distribution')
     args = parser.parse_args()
 

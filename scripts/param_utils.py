@@ -34,7 +34,7 @@ class Params:
         self.activn = 'tanh'
 
         self.args = args
-        self.savedir = '../saved-models'
+        self.savedir = '../saved'
 
     def _pathify(func):
         @wraps(func)
@@ -52,37 +52,38 @@ class Params:
             if args.noisy is not True:
                 filename += '-' + args.noisy
             if args.noisy != 'zero':
-                filename += '--covrot-%.2f' % args.covrot
+                filename += '--covrot-%d' % args.covrot
         if not args.noisy or args.noisy == 'zero':
             filename += ('--vert' if args.rotate is None
-                         else '--rot-%.2f' % args.rotate)
+                         else '--rot-%d' % args.rotate)
         if hasattr(args, 'iter') and args.iter:
             filename += '--%d' % args.iter
         return filename + '.pth'
 
     @_pathify
     def vert_model_filename(self):
-        filename = '%s--%s--vert' % (params.net_name, params.activn)
-        if hasattr(args, 'iter') and args.iter:
+        filename = '%s--%s--vert' % (self.net_name, self.activn)
+        if hasattr(self.args, 'iter') and self.args.iter:
             filename += '--%d' % self.args.iter
         return filename + '.pth'
 
     @_pathify
     def cov_filename(self):
-        filename = 'cov--%s--%s--covrot-%.2f' % (params.net_name, params.activn,
-                                                 self.args.covrot)
-        if hasattr(args, 'iter') and args.iter:
+        filename = 'cov--%s--%s--covrot-%d' % (self.net_name, self.activn,
+                                               self.args.covrot)
+        if hasattr(self.args, 'iter') and self.args.iter:
             filename += '--%d' % self.args.iter
         return filename + '.npy'
 
     @_pathify
     def perf_filename(self):
-        return 'perf--' + self.model_filename().replace('.pth', '.pkl')
+        model_filename = os.path.basename(self.model_filename())
+        return 'perf--' + model_filename.replace('.pth', '.pkl')
 
     @_pathify
     def alignment_filename(self):
-        filename = ('covariance-alignment--%s--%s--%.2f'
+        filename = ('covariance-alignment--%s--%s--%d'
                     % (self.net_name, self.activn, self.args.covrot))
-        if hasattr(args, 'iter') and args.iter:
+        if hasattr(self.args, 'iter') and self.args.iter:
             filename += '--%d' % self.args.iter
         return filename + '.csv'
