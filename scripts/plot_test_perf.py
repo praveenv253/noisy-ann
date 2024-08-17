@@ -8,44 +8,38 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
+from param_utils import Params
+
 
 if __name__ == '__main__':
+    savedir = 'revamped'
+    net = 'mnist-6l-cnn'
+
     df = pd.DataFrame()
     dfs = {}
-    for i in range(1, 2):
-        d = pd.read_pickle('../saved/perf--mnist-5l-cnn-v3.1--tanh--noisy-zero--rot-60--%d.pkl' % i)
-        dfs[i] = d
+    for i in list(range(1, 3)):  # Iterate over --iter values
+        params = Params(args_needed=['noisy', 'rotate', 'covrot', 'iter'],
+                        args_list=['--iter=%d' % i])
+        lower_baseline = pd.read_pickle(params.perf_filename())
+        params = Params(args_needed=['noisy', 'rotate', 'covrot', 'iter'],
+                        args_list=['--noisy=zero', '--rotate=60', '--iter=%d' % i])
+        upper_baseline = pd.read_pickle(params.perf_filename())
+        params = Params(args_needed=['noisy', 'rotate', 'covrot', 'iter'],
+                        args_list=['--noisy', '--iter=%d' % i])
+        result = pd.read_pickle(params.perf_filename())
+        params = Params(args_needed=['noisy', 'rotate', 'covrot', 'iter'],
+                        args_list=['--noisy=diagonal', '--iter=%d' % i])
+        control = pd.read_pickle(params.perf_filename())
+        df = pd.concat({'Lower baseline': lower_baseline,
+                        'Upper baseline': upper_baseline,
+                        'Result': result, 'Control': control}, axis=1)
+        dfs[i] = df.droplevel(1, axis=1)
 
-    baseline_df = pd.concat(dfs)
-    baseline_df = baseline_df.droplevel(0, axis=1)
-    baseline_df.index.set_names(['iter', 'cond'], inplace=True)
-    baseline_df = baseline_df.reset_index()
-    baseline_df = baseline_df.replace({'cond': {0: 'Lower baseline', 60: 'Upper baseline'}}).set_index(['iter', 'cond'])
+    dfs = pd.concat(dfs)
+    dfs.index.set_names('iter', level=0, inplace=True)
+    full_df = pd.melt(dfs, var_name='cond', value_name='Accuracy',
+                      ignore_index=False).reset_index()
 
-    dfs = {}
-    for i in range(1, 2):
-        d = pd.read_pickle('../saved/perf--mnist-5l-cnn-v3.1--tanh--noisy--covrot-60--%d.pkl' % i)
-        dfs[i] = d
-    result_df = pd.concat(dfs, axis=1).T
-    result_df.index.set_names(['iter', 'cond'], inplace=True)
-    result_df = result_df.reset_index()
-    result_df = result_df.replace({'cond': {'recall': 'Result'}}).set_index(['iter', 'cond'])
-
-
-    dfs = {}
-    for i in range(1, 2):
-        d = pd.read_pickle('../saved/perf--mnist-5l-cnn-v3.1--tanh--noisy-diagonal--covrot-60--%d.pkl' % i)
-        dfs[i] = d
-    control_df = pd.concat(dfs, axis=1).T
-    control_df.index.set_names(['iter', 'cond'], inplace=True)
-    control_df = control_df.reset_index()
-    control_df = control_df.replace({'cond': {'recall': 'Control'}}).set_index(['iter', 'cond'])
-
-    #print(baseline_df)
-    #print(result_df)
-    #print(control_df)
-
-    full_df = pd.concat([baseline_df, result_df, control_df]).sort_index().stack().rename('Accuracy').reset_index()
     print(full_df)
 
     sns.set_context('notebook', font_scale=1.25)

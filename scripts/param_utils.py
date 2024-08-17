@@ -8,7 +8,7 @@ import argparse
 
 class Params:
 
-    def __init__(self, args_needed):
+    def __init__(self, args_needed, args_list=None):
         self.batch_size = 64
         self.num_epochs = 10
         self.adam_lr = 0.001
@@ -60,7 +60,8 @@ class Params:
             parser.add_argument('--iter', type=int, default=0,
                                 help='Iteration number for multiple runs')
 
-        self.args = parser.parse_args()
+        # If args_list is None (the default), this reads from sys.argv
+        self.args = parser.parse_args(args=args_list)
 
 
     def _pathify(func):
