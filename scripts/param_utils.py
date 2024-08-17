@@ -13,28 +13,32 @@ class Params:
         self.num_epochs = 10
         self.adam_lr = 0.001
 
-        #self.net_name = 'mnist-6l-cnn'
+        self.net_name = 'mnist-6l-cnn'
         #self.net_name = 'mnist-6l-cnn-v2'
         #self.net_name = 'mnist-5l-cnn-v3'
-        self.net_name = 'mnist-5l-cnn-v3.1'
+        #self.net_name = 'mnist-5l-cnn-v3.1'
 
         if self.net_name == 'mnist-6l-cnn':
             self.Net = models.Mnist_6L_CNN
-            self.NoisyNet = models.Noisy_Mnist_6L_CNN
+            #self.NoisyNet = models.Noisy_Mnist_6L_CNN
+            self.default_noisy_layer = 3  # (3rd layer *index*)
         elif self.net_name == 'mnist-6l-cnn-v2':
             self.Net = models.Mnist_6L_CNN_v2
             self.NoisyNet = models.Noisy_Mnist_6L_CNN_v2
+            self.default_noisy_layer = 4
         elif self.net_name == 'mnist-5l-cnn-v3':
             self.Net = models.Mnist_5L_CNN_v3
             self.NoisyNet = models.Noisy_Mnist_5L_CNN_v3
+            self.default_noisy_layer = 4
         elif self.net_name == 'mnist-5l-cnn-v3.1':
             self.Net = models.Mnist_5L_CNN_v3_1
             self.NoisyNet = models.Noisy_Mnist_5L_CNN_v3_1
+            self.default_noisy_layer = 4
 
         #self.activn = 'relu'
         self.activn = 'tanh'
 
-        self.savedir = '../saved'
+        self.savedir = '../revamped'
 
         parser = argparse.ArgumentParser()
         if 'rotate' in args_needed:

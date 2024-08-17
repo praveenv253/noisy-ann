@@ -52,17 +52,8 @@ if __name__ == '__main__':
 
     # Initialize the network and train
     if args.noisy:
-        oldnet = params.Net(params)
-        oldnet.load_state_dict(torch.load(params.vert_model_filename()))
-        if args.noisy == 'identity':
-            cov = np.eye(params.NoisyNet.noise_dim)
-        elif args.noisy == 'zero':
-            cov = 0 * np.eye(params.NoisyNet.noise_dim)
-        else:
-            cov = np.load(params.cov_filename())
-        if args.noisy == 'diagonal':
-            cov *= np.eye(cov.shape[0])
-        net = params.NoisyNet(oldnet, cov)
+        net = params.Net(params, noisy=args.noisy)
+        net.load_state_dict(torch.load(params.vert_model_filename()))
     else:
         net = params.Net(params)
     train(net, data, params)

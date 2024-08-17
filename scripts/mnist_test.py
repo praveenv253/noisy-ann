@@ -14,13 +14,7 @@ from data_utils import load_mnist_data, rotate_images, setup_dataloaders
 
 def compute_performance(params):
     # Load the network to be evaluated
-    if params.args.noisy:
-        oldnet = params.Net(params)
-        oldnet.load_state_dict(torch.load(params.vert_model_filename()))
-        cov = 0 * np.eye(params.NoisyNet.noise_dim)
-        net = params.NoisyNet(oldnet, cov)
-    else:
-        net = params.Net(params)
+    net = params.Net(params)
     net.load_state_dict(torch.load(params.model_filename()))
 
     # Evaluate on various fixed rotations of the test data
