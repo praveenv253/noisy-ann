@@ -51,11 +51,9 @@ if __name__ == '__main__':
     setup_dataloaders(data, params)
 
     # Initialize the network and train
+    net = params.Net(params, noisy=args.noisy)
     if args.noisy:
-        net = params.Net(params, noisy=args.noisy)
         net.load_state_dict(torch.load(params.vert_model_filename()))
-    else:
-        net = params.Net(params)
     train(net, data, params)
     print('Finished Training')
 

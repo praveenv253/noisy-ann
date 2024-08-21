@@ -13,11 +13,11 @@ from param_utils import Params
 
 if __name__ == '__main__':
     savedir = 'revamped'
-    net = 'mnist-6l-cnn'
+    net = 'Mnist_v3_2C3F_N1'
 
     df = pd.DataFrame()
     dfs = {}
-    for i in list(range(1, 3)):  # Iterate over --iter values
+    for i in list(range(1, 2)):  # Iterate over --iter values
         params = Params(args_needed=['noisy', 'rotate', 'covrot', 'iter'],
                         args_list=['--iter=%d' % i])
         lower_baseline = pd.read_pickle(params.perf_filename())

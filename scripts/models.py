@@ -14,12 +14,9 @@ class NoisyModule(nn.Module):
     implementations.
 
     Can have noise injected at some intermediate layer when `noisy` is True.
-
-    The layer at which noise is injected can be specified by the kw arg
-    `noisy_layer` during init, and is inferred from params otherwise.
-
     The shape of the noise injected is specified by `cov`.
 
+    The layer at which noise is injected is inferred from params.
     Layers are zero-indexed. The 0-th layer is the first hidden layer (the
     input layer is not counted) and the last layer is the output layer.
 
@@ -27,7 +24,7 @@ class NoisyModule(nn.Module):
     ----------
 
     `params`: param_utils.Params
-        used to get `params.activn`, `params.default_noisy_layer` and
+        used to get `params.activn`, `params.noisy_layer` and
         `params.cov_filename()`.
 
     `noisy`: False, True, 'zero', 'identity', or 'diagonal'
@@ -36,12 +33,11 @@ class NoisyModule(nn.Module):
         If `noisy` is 'identity', use an identity covariance matrix.
         If `noisy` is True, use the saved covariance matrix; and
         if `noisy` is 'diagonal', set its non-diagonal entries to zero.
-
-    `noisy_layer`: int
-        Provides a hook to manually override the default in params.
     """
 
-    def __init__(self, params, noisy=False, noisy_layer=None):
+    def __init__(self, params, noisy=False):
+        # `noisy` is set separately from params because different files will
+        # initialize the network differently.
         super().__init__()
 
         self.activn = F.relu if params.activn == 'relu' else torch.tanh
@@ -50,10 +46,11 @@ class NoisyModule(nn.Module):
         # Set the layer at which to add noise
         # This value is required even if noisy is False, e.g., when extracting
         # activations of the noisy layer to compute the covariance
-        if noisy_layer is None:
-            self.noisy_layer = params.default_noisy_layer
-        else:
-            self.noisy_layer = noisy_layer
+        self.noisy_layer = params.noisy_layer
+
+        # List to collect outputs from different layers - will typically
+        # exclude the output of convolutional layers before max-pooling
+        self.outputs = []
 
         if noisy:
             # Freeze all layers prior to the noisy layer
@@ -125,17 +122,16 @@ class NoisyModule(nn.Module):
 
 
 
-class Mnist_6L_CNN(NoisyModule):
+class Mnist_v1_1C5F(NoisyModule):
     """
     6-layer feedforward neural network with one convolutional layer.
-
     """
 
     _layer_shapes = [(32, 14, 14), (128,), (64,), (32,), (16,), (10,)]
     # Last layer is the output layer
 
-    def __init__(self, params, noisy=False, noisy_layer=None):
-        super().__init__(params, noisy, noisy_layer)
+    def __init__(self, params, noisy=False):
+        super().__init__(params, noisy)
 
         self.conv0 = nn.Conv2d(1, 32, kernel_size=3, padding=1)
         self.fc1 = nn.Linear(32*14*14, 128)  # 32 chans, image 14x14 after pooling
@@ -143,7 +139,6 @@ class Mnist_6L_CNN(NoisyModule):
         self.fc3 = nn.Linear(64, 32)
         self.fc4 = nn.Linear(32, 16)
         self.fc5 = nn.Linear(16, 10)
-        self.outputs = []    # Excludes convolutional output before max-pooling
 
 
     def forward(self, x):
@@ -163,273 +158,80 @@ class Mnist_6L_CNN(NoisyModule):
 
 
 
-class Mnist_6L_CNN_v2(nn.Module):
-    def __init__(self, params=None):
-        super().__init__()
+class Mnist_v2_3C3F(NoisyModule):
+    """
+    6-layer feedforward neural network with three convolutional layers.
+    """
 
-        self.conv1 = nn.Conv2d(1, 6, kernel_size=5, padding=2)  # Image remains 28x28 after this
+    _layer_shapes = [(6, 14, 14), (16, 14, 14), (16, 5, 5), (32,), (16,), (10,)]
+
+    def __init__(self, params, noisy=False):
+        super().__init__(params, noisy)
+
+        self.conv0 = nn.Conv2d(1, 6, kernel_size=5, padding=2)   # Image remains 28x28 after this
         # max pool down to 14x14 after this
-        self.conv2 = nn.Conv2d(6, 16, kernel_size=3, padding=1)  # Image remains 14x14
+        self.conv1 = nn.Conv2d(6, 16, kernel_size=3, padding=1)  # Image remains 14x14
         # No max pooling here
-        self.conv3 = nn.Conv2d(16, 16, kernel_size=5, padding=0) # Image becomes 10x10
+        self.conv2 = nn.Conv2d(16, 16, kernel_size=5, padding=0) # Image becomes 10x10
         # max pool down to 5x5
         self.fc3 = nn.Linear(16*5*5, 32)  # 16 channels, image size 5x5 after max pooling
         self.fc4 = nn.Linear(32, 16)
         self.fc5 = nn.Linear(16, 10)
-        self.outputs = []    # Excludes convolutional output before max-pooling
-        self.all_outputs = []
 
-        try:
-            self.activn = (F.tanh if params.activn == 'tanh' else F.relu)
-        except:
-            self.activn = F.relu
 
     def forward(self, x):
-        conv1_out = self.activn(self.conv1(x))
-        maxpool1_out = F.max_pool2d(conv1_out, kernel_size=2, stride=2)
-        conv2_out = self.activn(self.conv2(maxpool1_out))
-        conv3_out = self.activn(self.conv3(conv2_out))
-        maxpool3_out = F.max_pool2d(conv3_out, kernel_size=2, stride=2)
-        fc3_out = self.activn(self.fc3(maxpool3_out.view(-1, 16*5*5)))
-        fc4_out = self.activn(self.fc4(fc3_out))
+        conv0_out = self.activn(self.conv0(x))
+        maxpool0_out = self._add_noise(0, F.max_pool2d(conv0_out, kernel_size=2,
+                                                       stride=2))
+        conv1_out = self._add_noise(1, self.activn(self.conv1(maxpool0_out)))
+        conv2_out = self.activn(self.conv2(conv1_out))
+        maxpool2_out = self._add_noise(2, F.max_pool2d(conv2_out, kernel_size=2,
+                                                       stride=2)
+                                      ).view(x.shape[0], -1)
+        fc3_out = self._add_noise(3, self.activn(self.fc3(maxpool2_out)))
+        fc4_out = self._add_noise(4, self.activn(self.fc4(fc3_out)))
         fc5_out = self.fc5(fc4_out)
 
         # Save outputs
-        self.outputs = [maxpool1_out.view(x.shape[0], -1),
-                        conv2_out.view(x.shape[0], -1),
-                        maxpool3_out.view(x.shape[0], -1),
-                        fc3_out, fc4_out, fc5_out]
-        self.all_outputs = [conv1_out, maxpool1_out, conv2_out, conv3_out,
-                            maxpool3_out, fc3_out, fc4_out, fc5_out]
-        return fc5_out
-
-    def noisy_layer_output(self):
-        return self.all_outputs[-3]
-
-
-class Noisy_Mnist_6L_CNN_v2(nn.Module):
-    """
-    Class that builds on a pre-trained neural network, and injects noise in
-    one layer of the network in its forward pass.
-
-    Trainable parameters are only for the layer after that.
-
-    This network currently retrains the last two layers.
-    """
-
-    noise_dim = 32
-
-    def __init__(self, oldnet, cov):
-        super().__init__()
-
-        # Run the first few layers of the old network. Placing it in a function
-        # ensures that the oldnet doesn't get included in the NoisyNet's params
-        def oldfwd(x):
-            oldnet(x)
-            return oldnet.all_outputs[-3]
-        self.oldfwd = oldfwd
-        self.activn = oldnet.activn
-
-        #self.oldnet = Net()
-        #self.oldnet.load_state_dict(oldnet.state_dict())
-        self.cov = cov
-        self.rng = np.random.default_rng()
-        self.fc4 = nn.Linear(32, 16)
-        self.fc5 = nn.Linear(16, 10)
-
-    def forward(self, x):
-        with torch.no_grad():
-            old_out = self.oldfwd(x)
-
-        noise = self.rng.multivariate_normal(np.zeros(self.cov.shape[0]),
-                                             self.cov, size=old_out.shape[0]
-                                            ).astype(np.float32)
-        fc4_out = self.activn(self.fc4(old_out + torch.tensor(noise)))
-        fc5_out = self.fc5(fc4_out)
-
-        #self.outputs = self.oldnet.outputs[:-2] + [fc4_out, fc5_out]
+        self.outputs = [maxpool0_out.view(x.shape[0], -1),
+                        conv1_out.view(x.shape[0], -1),
+                        maxpool2_out, fc3_out, fc4_out, fc5_out]
         return fc5_out
 
 
-class Mnist_5L_CNN_v3(nn.Module):
-    def __init__(self, params=None):
-        super().__init__()
 
-        self.conv1 = nn.Conv2d(1, 6, kernel_size=5, padding=2)  # Image remains 28x28 after this
+class Mnist_v3_2C3F(NoisyModule):
+    """
+    5-layer feedforward neural network with two convolutional layers.
+    """
+
+    _layer_shapes = [(6, 14, 14), (16, 5, 5), (32,), (16,), (10,)]
+
+    def __init__(self, params, noisy=False):
+        super().__init__(params, noisy)
+
+        self.conv0 = nn.Conv2d(1, 6, kernel_size=5, padding=2)  # Image remains 28x28 after this
         # max pool down to 14x14 after this
-        self.conv2 = nn.Conv2d(6, 16, kernel_size=5, padding=0) # Image becomes 10x10
+        self.conv1 = nn.Conv2d(6, 16, kernel_size=5, padding=0) # Image becomes 10x10
         # max pool down to 5x5
-        self.fc3 = nn.Linear(16*5*5, 32)  # 16 channels, image size 5x5 after max pooling
-        self.fc4 = nn.Linear(32, 16)
-        self.fc5 = nn.Linear(16, 10)
-        self.outputs = []    # Excludes convolutional output before max-pooling
-        self.all_outputs = []
+        self.fc2 = nn.Linear(16*5*5, 32)  # 16 channels, image size 5x5 after max pooling
+        self.fc3 = nn.Linear(32, 16)
+        self.fc4 = nn.Linear(16, 10)
 
-        try:
-            self.activn = (F.tanh if params.activn == 'tanh' else F.relu)
-        except:
-            self.activn = F.relu
 
     def forward(self, x):
-        conv1_out = self.activn(self.conv1(x))
-        maxpool1_out = F.max_pool2d(conv1_out, kernel_size=2, stride=2)
-        conv2_out = self.activn(self.conv2(maxpool1_out))
-        maxpool2_out = F.max_pool2d(conv2_out, kernel_size=2, stride=2)
-        fc3_out = self.activn(self.fc3(maxpool2_out.view(-1, 16*5*5)))
-        fc4_out = self.activn(self.fc4(fc3_out))
-        fc5_out = self.fc5(fc4_out)
+        conv0_out = self.activn(self.conv0(x))
+        maxpool0_out = self._add_noise(0, F.max_pool2d(conv0_out, kernel_size=2,
+                                                       stride=2))
+        conv1_out = self.activn(self.conv1(maxpool0_out))
+        maxpool1_out = self._add_noise(1, F.max_pool2d(conv1_out, kernel_size=2,
+                                                       stride=2)
+                                      ).view(x.shape[0], -1)
+        fc2_out = self._add_noise(2, self.activn(self.fc2(maxpool1_out)))
+        fc3_out = self._add_noise(3, self.activn(self.fc3(fc2_out)))
+        fc4_out = self.fc4(fc3_out)
 
         # Save outputs
-        self.outputs = [maxpool1_out.view(x.shape[0], -1),
-                        maxpool2_out.view(x.shape[0], -1),
-                        fc3_out, fc4_out, fc5_out]
-        self.all_outputs = [conv1_out, maxpool1_out, conv2_out, maxpool2_out,
-                            fc3_out, fc4_out, fc5_out]
-        return fc5_out
-
-    def noisy_layer_output(self):
-        """
-        Output of layer to be used to compute covariance.
-        """
-        shape = self.all_outputs[1].shape
-        return self.all_outputs[1].reshape((shape[0], shape[1] * shape[2] * shape[3]))
-
-
-class Noisy_Mnist_5L_CNN_v3(nn.Module):
-    """
-    Class that builds on a pre-trained neural network, and injects noise in
-    one layer of the network in its forward pass.
-
-    Trainable parameters are only for the layer after that.
-
-    This network currently retrains everything except the first layer.
-    """
-
-    noise_dim = 6 * 14 * 14
-
-    def __init__(self, oldnet, cov):
-        super().__init__()
-
-        # Run the first few layers of the old network. Placing it in a function
-        # ensures that the oldnet doesn't get included in the NoisyNet's params
-        def oldfwd(x):
-            oldnet(x)
-            return oldnet.all_outputs[1]
-        self.oldfwd = oldfwd
-        self.activn = oldnet.activn
-
-        self.cov = cov
-        self.rng = np.random.default_rng()
-        self.conv2 = nn.Conv2d(6, 16, kernel_size=5, padding=0) # Image becomes 10x10
-        # max pool down to 5x5
-        self.fc3 = nn.Linear(16*5*5, 32)  # 16 channels, image size 5x5 after max pooling
-        self.fc4 = nn.Linear(32, 16)
-        self.fc5 = nn.Linear(16, 10)
-
-    def forward(self, x):
-        with torch.no_grad():
-            old_out = self.oldfwd(x)
-
-        noise = self.rng.multivariate_normal(np.zeros(self.cov.shape[0]),
-                                             self.cov, size=old_out.shape[0]
-                                            ).astype(np.float32).reshape(old_out.shape)
-        conv2_out = self.activn(self.conv2(old_out + torch.tensor(noise)))
-        maxpool2_out = F.max_pool2d(conv2_out, kernel_size=2, stride=2)
-        fc3_out = self.activn(self.fc3(maxpool2_out.view(-1, 16*5*5)))
-        fc4_out = self.activn(self.fc4(fc3_out))
-        fc5_out = self.fc5(fc4_out)
-
-        #self.outputs = self.oldnet.outputs[:2] + [fc4_out, fc5_out]
-        return fc5_out
-
-
-class Mnist_5L_CNN_v3_1(nn.Module):
-    """
-    This architecture is identical to Mnist_5L_CNN_v3, but noise is injected
-    after the second layer, instead of after the first.
-    """
-
-    def __init__(self, params=None):
-        super().__init__()
-
-        self.conv1 = nn.Conv2d(1, 6, kernel_size=5, padding=2)  # Image remains 28x28 after this
-        # max pool down to 14x14 after this
-        self.conv2 = nn.Conv2d(6, 16, kernel_size=5, padding=0) # Image becomes 10x10
-        # max pool down to 5x5
-        self.fc3 = nn.Linear(16*5*5, 32)  # 16 channels, image size 5x5 after max pooling
-        self.fc4 = nn.Linear(32, 16)
-        self.fc5 = nn.Linear(16, 10)
-        self.outputs = []    # Excludes convolutional output before max-pooling
-        self.all_outputs = []
-
-        try:
-            self.activn = (F.tanh if params.activn == 'tanh' else F.relu)
-        except:
-            self.activn = F.relu
-
-    def forward(self, x):
-        conv1_out = self.activn(self.conv1(x))
-        maxpool1_out = F.max_pool2d(conv1_out, kernel_size=2, stride=2)
-        conv2_out = self.activn(self.conv2(maxpool1_out))
-        maxpool2_out = F.max_pool2d(conv2_out, kernel_size=2, stride=2)
-        fc3_out = self.activn(self.fc3(maxpool2_out.view(-1, 16*5*5)))
-        fc4_out = self.activn(self.fc4(fc3_out))
-        fc5_out = self.fc5(fc4_out)
-
-        # Save outputs
-        self.outputs = [maxpool1_out.view(x.shape[0], -1),
-                        maxpool2_out.view(x.shape[0], -1),
-                        fc3_out, fc4_out, fc5_out]
-        self.all_outputs = [conv1_out, maxpool1_out, conv2_out, maxpool2_out,
-                            fc3_out, fc4_out, fc5_out]
-        return fc5_out
-
-    def noisy_layer_output(self):
-        """
-        Output of layer to be used to compute covariance.
-        """
-        shape = self.all_outputs[3].shape
-        return self.all_outputs[3].reshape((shape[0], -1))
-
-
-class Noisy_Mnist_5L_CNN_v3_1(nn.Module):
-    """
-    Class that builds on a pre-trained neural network, and injects noise in
-    one layer of the network in its forward pass.
-
-    Trainable parameters are only for the layer after that.
-
-    This network currently retrains everything except the first two layers.
-    """
-
-    noise_dim = 16 * 5 * 5
-
-    def __init__(self, oldnet, cov):
-        super().__init__()
-
-        # Run the first few layers of the old network. Placing it in a function
-        # ensures that the oldnet doesn't get included in the NoisyNet's params
-        def oldfwd(x):
-            oldnet(x)
-            return oldnet.all_outputs[3]
-        self.oldfwd = oldfwd
-        self.activn = oldnet.activn
-
-        self.cov = cov
-        self.rng = np.random.default_rng()
-        self.fc3 = nn.Linear(16*5*5, 32)  # 16 channels, image size 5x5 after max pooling
-        self.fc4 = nn.Linear(32, 16)
-        self.fc5 = nn.Linear(16, 10)
-
-    def forward(self, x):
-        with torch.no_grad():
-            old_out = self.oldfwd(x)
-
-        noise = self.rng.multivariate_normal(np.zeros(self.cov.shape[0]),
-                                             self.cov, size=old_out.shape[0]
-                                            ).astype(np.float32).reshape(old_out.shape)
-        fc3_out = self.activn(self.fc3((old_out + torch.tensor(noise)).view(-1, 16*5*5)))
-        fc4_out = self.activn(self.fc4(fc3_out))
-        fc5_out = self.fc5(fc4_out)
-
-        return fc5_out
+        self.outputs = [maxpool0_out.view(x.shape[0], -1), maxpool1_out,
+                        fc2_out, fc3_out, fc4_out]
+        return fc4_out
