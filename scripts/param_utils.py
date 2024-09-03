@@ -31,6 +31,7 @@ class Params:
                       'no noise (i.e., to train only post-noise layers). If diagonal, use '
                       'only the diagonal of the covariance matrix. If identity, use an '
                       'identity covariance matrix.'))
+            parser.add_argument('--reinit', action='store_true')
         parser.add_argument('--noisy-layer', type=int, default=None,
                             help='Layer of network at which to add noise')
         if 'covrot' in args_needed:
@@ -79,6 +80,8 @@ class Params:
                 filename += '-' + args.noisy
             if args.noisy != 'zero':
                 filename += '--covrot-%d' % args.covrot
+        if hasattr(args, 'reinit') and args.reinit:
+            filename += '--reinit'
         if not args.noisy or args.noisy == 'zero':
             filename += ('--vert' if args.rotate is None
                          else '--rot-%d' % args.rotate)

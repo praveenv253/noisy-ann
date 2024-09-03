@@ -120,6 +120,12 @@ class NoisyModule(nn.Module):
             raise ValueError('Must run a forward pass before calling '
                              'noisy_layer_output')
 
+    def post_noise_reinit(self):
+        """Reset the weights of the post-noise layers."""
+        for name, child in self.named_children():
+            if self._layer_num(name) > self.noisy_layer:
+                child.reset_parameters()
+
 
 
 class Mnist_v1_1C5F(NoisyModule):

@@ -14,18 +14,18 @@ from param_utils import Params
 if __name__ == '__main__':
     df = pd.DataFrame()
     dfs = {}
-    for i in list(range(1, 3)):  # Iterate over --iter values
+    for i in list(range(7, 8)):  # Iterate over --iter values
         params = Params(args_needed=['noisy', 'rotate', 'covrot', 'iter'],
                         args_list=['--iter=%d' % i])
         lower_baseline = pd.read_pickle(params.perf_filename())
         params = Params(args_needed=['noisy', 'rotate', 'covrot', 'iter'],
-                        args_list=['--noisy=zero', '--rotate=60', '--iter=%d' % i])
+                        args_list=['--noisy=zero', '--rotate=60', '--iter=%d' % i, '--reinit'])
         upper_baseline = pd.read_pickle(params.perf_filename())
         params = Params(args_needed=['noisy', 'rotate', 'covrot', 'iter'],
-                        args_list=['--noisy', '--iter=%d' % i])
+                        args_list=['--noisy', '--iter=%d' % i, '--reinit'])
         result = pd.read_pickle(params.perf_filename())
         params = Params(args_needed=['noisy', 'rotate', 'covrot', 'iter'],
-                        args_list=['--noisy=diagonal', '--iter=%d' % i])
+                        args_list=['--noisy=diagonal', '--iter=%d' % i, '--reinit'])
         control = pd.read_pickle(params.perf_filename())
         df = pd.concat({'Lower baseline': lower_baseline,
                         'Upper baseline': upper_baseline,

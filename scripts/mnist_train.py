@@ -54,6 +54,8 @@ if __name__ == '__main__':
     net = params.Net(params, noisy=args.noisy)
     if args.noisy:
         net.load_state_dict(torch.load(params.vert_model_filename()))
+        if args.reinit:
+            net.post_noise_reinit()
     train(net, data, params)
     print('Finished Training')
 
