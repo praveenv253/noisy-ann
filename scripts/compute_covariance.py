@@ -7,29 +7,26 @@ import numpy.linalg as la
 import torch
 
 from param_utils import Params
-from data_utils import load_mnist_data, rotate_images, setup_dataloaders
+from data_utils import MnistData
 
 
 if __name__ == '__main__':
     params = Params(args_needed=['covrot', 'iter'])
 
     # Load the original unrotated dataset
-    data = load_mnist_data(params)
-    setup_dataloaders(data, params, traineval=True)
+    data = MnistData(params, traineval=True)
 
     # Load data and create the rotated training dataset
-    data_rot = load_mnist_data(params)
-    data_rot.trainset = rotate_images(data_rot.trainset, params.args.covrot,
-                                      random=True)
-    setup_dataloaders(data_rot, params, traineval=True)
+    data_rot = MnistData(params, rotation_angle=params.args.covrot, random=True,
+                         traineval=True)
 
     # Load the network
     net = params.Net(params)
     net.load_state_dict(torch.load(params.vert_model_filename()))
 
     # Compute covariance matrix on forward pass
-    images, _ = next(iter(data.trainloader))
-    images_rot, _ = next(iter(data_rot.trainloader))
+    images, _ = next(iter(data.loader))
+    images_rot, _ = next(iter(data_rot.loader))
     with torch.no_grad():
         # Get response to the rotated images
         net(images_rot.reshape((-1, 1, 28, 28)))  # Forward pass

@@ -9,7 +9,7 @@ import pandas as pd
 #from sklearn.metrics import confusion_matrix
 
 from param_utils import Params
-from data_utils import load_mnist_data, rotate_images, setup_dataloaders
+from data_utils import MnistData
 
 
 def compute_performance(params):
@@ -20,13 +20,10 @@ def compute_performance(params):
     # Evaluate on various fixed rotations of the test data
     performance = []
     for test_angle in [0, 15, 30, 45, 60, 90]:
-        data = load_mnist_data(params)
-        if test_angle > 0:
-            data.testset = rotate_images(data.testset, test_angle)
-        setup_dataloaders(data, params)
+        data = MnistData(params, train=False, rotation_angle=test_angle)
 
-        images, labels = next(iter(data.testloader))
-        total = len(data.testset)
+        images, labels = next(iter(data.loader))
+        total = len(data.dataset)
 
         with torch.no_grad():
             outputs = net(images.reshape((-1, 1, 28, 28)))

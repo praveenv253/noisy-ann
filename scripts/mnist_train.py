@@ -6,7 +6,7 @@ import torch
 import matplotlib.pyplot as plt
 
 from param_utils import Params
-from data_utils import load_mnist_data, rotate_images, setup_dataloaders
+from data_utils import MnistData
 
 
 def train(net, data, params):
@@ -17,7 +17,7 @@ def train(net, data, params):
     loss_vals = []
     for epoch in range(params.num_epochs):  # loop over the dataset multiple times
         running_loss = 0.0
-        for i, train_data in enumerate(data.trainloader, 0):
+        for i, train_data in enumerate(data.loader):
             inputs, labels = train_data
             optimizer.zero_grad()
 
@@ -45,10 +45,10 @@ if __name__ == '__main__':
     params = Params(args_needed=['rotate', 'noisy', 'covrot', 'iter'])
     args = params.args
 
-    data = load_mnist_data(params)
     if args.rotate is not None:
-        data.trainset = rotate_images(data.trainset, args.rotate, random=True)
-    setup_dataloaders(data, params)
+        data = MnistData(params, rotation_angle=args.rotate, random=True)
+    else:
+        data = MnistData(params)
 
     # Initialize the network and train
     net = params.Net(params, noisy=args.noisy)
@@ -57,6 +57,7 @@ if __name__ == '__main__':
         net.freeze_layers()
         if args.reinit:
             net.post_noise_reinit()
+
     train(net, data, params)
     print('Finished Training')
 
