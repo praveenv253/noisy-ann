@@ -53,9 +53,6 @@ class NoisyModule(nn.Module):
         self.outputs = []
 
         if noisy:
-            # Freeze all layers prior to the noisy layer
-            self._freeze_layers()
-
             # Initialize the covariance matrix
             if noisy == 'identity':
                 self.cov = np.eye(self._noise_dim())
@@ -80,18 +77,6 @@ class NoisyModule(nn.Module):
     def _noise_dim(self):
         """Return the size of the noisy layer."""
         return np.prod(self._layer_shapes[self.noisy_layer])
-
-
-    def _freeze_layers(self):
-        """
-        Freezes layers upto and including `noisy_layer`. When noise is added to
-        the hidden neurons of `noisy_layer`, only subsequent layers need
-        retraining. Assumes that layer names contain the layer number as the
-        last character.
-        """
-        for name, parameter in self.named_parameters():
-            if self._layer_num(name) <= self.noisy_layer:
-                parameter.requires_grad = False
 
 
     def _add_noise(self, layer, x):
@@ -119,6 +104,18 @@ class NoisyModule(nn.Module):
         except:
             raise ValueError('Must run a forward pass before calling '
                              'noisy_layer_output')
+
+    def freeze_layers(self):
+        """
+        Freezes layers upto and including `noisy_layer`. When noise is added to
+        the hidden neurons of `noisy_layer`, only subsequent layers need
+        retraining. Assumes that layer names contain the layer number as the
+        last character.
+        """
+        for name, parameter in self.named_parameters():
+            if self._layer_num(name) <= self.noisy_layer:
+                parameter.requires_grad = False
+
 
     def post_noise_reinit(self):
         """Reset the weights of the post-noise layers."""

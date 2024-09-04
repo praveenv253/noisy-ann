@@ -2,7 +2,7 @@
 
 set -e
 
-for i in {6..10}; do
+for i in {1..10}; do
 	./mnist_train.py --iter $i
 	./mnist_test.py --iter $i
 	./mnist_train.py --noisy zero --reinit --rotate 60 --iter $i

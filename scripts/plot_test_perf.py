@@ -14,7 +14,7 @@ from param_utils import Params
 if __name__ == '__main__':
     df = pd.DataFrame()
     dfs = {}
-    for i in list(range(7, 8)):  # Iterate over --iter values
+    for i in list(range(1, 11)):  # Iterate over --iter values
         params = Params(args_needed=['noisy', 'rotate', 'covrot', 'iter'],
                         args_list=['--iter=%d' % i])
         lower_baseline = pd.read_pickle(params.perf_filename())
