@@ -13,7 +13,9 @@ class Params:
         self.num_epochs = 10
         self.adam_lr = 0.001
 
-        self.savedir = '../revamped'
+        self.num_train = 60000  # XXX Number of training data points - hard-coded for now XXX
+
+        self.savedir = '../saved'
 
         parser = argparse.ArgumentParser()
         parser.add_argument('--arch', default='v3',

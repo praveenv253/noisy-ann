@@ -35,7 +35,7 @@ class NoisyModule(nn.Module):
         if `noisy` is 'diagonal', set its non-diagonal entries to zero.
     """
 
-    def __init__(self, params, noisy=False):
+    def __init__(self, params, noisy=False, device=None):
         # `noisy` is set separately from params because different files will
         # initialize the network differently.
         super().__init__()
@@ -52,6 +52,11 @@ class NoisyModule(nn.Module):
         # exclude the output of convolutional layers before max-pooling
         self.outputs = []
 
+        if device:
+            self.device = device
+        else:
+            self.device = torch.device('cpu')
+
         if noisy:
             # Initialize the covariance matrix
             if noisy == 'identity':
@@ -66,6 +71,15 @@ class NoisyModule(nn.Module):
 
             # Initialize a random number generator
             self.rng = np.random.default_rng()
+
+            if self.device.type == 'cuda':
+                # Pre-generate the noise
+                noise = self.rng.multivariate_normal(
+                            np.zeros(self.cov.shape[0]), self.cov,
+                            size=(params.num_epochs * params.num_train)
+                )
+                self.noise = torch.tensor(noise.astype(np.float32)).to(self.device)
+                self.i = 0
 
 
     @staticmethod
@@ -91,9 +105,15 @@ class NoisyModule(nn.Module):
         #distr = MultivariateNormal(torch.zeros(self.cov.shape[0]),
         #                           covariance_matrix=self.cov)
         #noise = distr.sample(x.shape[0])
-        noise = self.rng.multivariate_normal(np.zeros(self.cov.shape[0]),
-                                             self.cov, size=x.shape[0])
-        noise = torch.tensor(noise.astype(np.float32))
+
+        if self.device.type == 'cuda':
+            noise = self.noise[self.i : self.i + x.shape[0]]
+            self.i += x.shape[0]
+        else:
+            noise = self.rng.multivariate_normal(np.zeros(self.cov.shape[0]),
+                                                 self.cov, size=x.shape[0])
+            noise = torch.tensor(noise.astype(np.float32)).to(self.device)
+
         return x + noise.view(x.shape)
 
 
@@ -133,8 +153,8 @@ class Mnist_v1_1C5F(NoisyModule):
     _layer_shapes = [(32, 14, 14), (128,), (64,), (32,), (16,), (10,)]
     # Last layer is the output layer
 
-    def __init__(self, params, noisy=False):
-        super().__init__(params, noisy)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         self.conv0 = nn.Conv2d(1, 32, kernel_size=3, padding=1)
         self.fc1 = nn.Linear(32*14*14, 128)  # 32 chans, image 14x14 after pooling
@@ -168,8 +188,8 @@ class Mnist_v2_3C3F(NoisyModule):
 
     _layer_shapes = [(6, 14, 14), (16, 14, 14), (16, 5, 5), (32,), (16,), (10,)]
 
-    def __init__(self, params, noisy=False):
-        super().__init__(params, noisy)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         self.conv0 = nn.Conv2d(1, 6, kernel_size=5, padding=2)   # Image remains 28x28 after this
         # max pool down to 14x14 after this
@@ -210,8 +230,8 @@ class Mnist_v3_2C3F(NoisyModule):
 
     _layer_shapes = [(6, 14, 14), (16, 5, 5), (32,), (16,), (10,)]
 
-    def __init__(self, params, noisy=False):
-        super().__init__(params, noisy)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         self.conv0 = nn.Conv2d(1, 6, kernel_size=5, padding=2)  # Image remains 28x28 after this
         # max pool down to 14x14 after this
