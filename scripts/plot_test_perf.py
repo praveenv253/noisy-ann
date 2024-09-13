@@ -14,18 +14,24 @@ from param_utils import Params
 if __name__ == '__main__':
     df = pd.DataFrame()
     dfs = {}
+
+    noisy_layer = 3
+
     for i in list(range(1, 11)):  # Iterate over --iter values
         params = Params(args_needed=['noisy', 'rotate', 'covrot', 'iter'],
                         args_list=['--iter=%d' % i])
         lower_baseline = pd.read_pickle(params.perf_filename())
         params = Params(args_needed=['noisy', 'rotate', 'covrot', 'iter'],
-                        args_list=['--noisy=zero', '--rotate=60', '--iter=%d' % i, '--reinit'])
+                        args_list=['--noisy=zero', '--rotate=60', '--iter=%d' % i,
+                                   '--reinit', '--noisy-layer=%d' % noisy_layer])
         upper_baseline = pd.read_pickle(params.perf_filename())
         params = Params(args_needed=['noisy', 'rotate', 'covrot', 'iter'],
-                        args_list=['--noisy', '--iter=%d' % i, '--reinit'])
+                        args_list=['--noisy', '--iter=%d' % i, '--reinit',
+                                   '--noisy-layer=%d' % noisy_layer])
         result = pd.read_pickle(params.perf_filename())
         params = Params(args_needed=['noisy', 'rotate', 'covrot', 'iter'],
-                        args_list=['--noisy=diagonal', '--iter=%d' % i, '--reinit'])
+                        args_list=['--noisy=diagonal', '--iter=%d' % i, '--reinit',
+                                   '--noisy-layer=%d' % noisy_layer])
         control = pd.read_pickle(params.perf_filename())
         df = pd.concat({'Lower baseline': lower_baseline,
                         'Upper baseline': upper_baseline,
@@ -43,9 +49,11 @@ if __name__ == '__main__':
     sns.pointplot(data=full_df, x='test_angle', y='Accuracy', hue='cond', errorbar='sd',
                   hue_order=['Lower baseline', 'Upper baseline', 'Control', 'Result'],
                   palette=['grey', 'k', 'C1', 'C0'], linestyles=['--', '--', '-', '-'])
+    plt.title('Acc on rotated MNIST, noise in layer %d' % noisy_layer, fontsize=20)
     plt.xlabel('Test rotation')
     ax = plt.gca()
     handles, labels = ax.get_legend_handles_labels()
-    ax.legend(handles=handles[:], labels=labels[:])
+    ax.legend(handles=handles[:], labels=['No noise, vertical', 'Supervised, rotated',
+                                          'Misaligned noise, vertical', 'Aligned noise, vertical'])
     plt.tight_layout()
     plt.show()

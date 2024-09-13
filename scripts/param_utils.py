@@ -59,10 +59,10 @@ class Params:
 
         self.activn = self.args.activn
 
-        self.noisy_layer = (self.args.noisy_layer if self.args.noisy_layer
+        self.noisy_layer = (self.args.noisy_layer if self.args.noisy_layer is not None
                             else self.default_noisy_layer)
 
-        self.net_name = self.Net.__name__ + '_N%d' % self.noisy_layer
+        self.net_name = self.Net.__name__
 
 
     def _pathify(func):
@@ -71,11 +71,20 @@ class Params:
             return os.path.join(self.savedir, func(self))
         return convert_to_path
 
+    @property
+    def net_name_nl(self):
+        """Net name combined with noisy layer."""
+        return self.net_name + '_N%d' % self.noisy_layer
+
     @_pathify
     def model_filename(self):
-        filename = self.net_name
-        filename += '--%s' % self.activn
         args = self.args
+        if (not args.noisy or args.noisy == 'zero') and args.rotate is None:
+            # We are in vert mode
+            filename = self.net_name
+        else:
+            filename = self.net_name_nl
+        filename += '--%s' % self.activn
         if args.noisy:
             filename += '--noisy'
             if args.noisy is not True:
@@ -93,6 +102,7 @@ class Params:
 
     @_pathify
     def vert_model_filename(self):
+        # Vert model does not need noisy layer appended to net name
         filename = '%s--%s--vert' % (self.net_name, self.activn)
         if hasattr(self.args, 'iter') and self.args.iter is not None:
             filename += '--%d' % self.args.iter
@@ -100,7 +110,7 @@ class Params:
 
     @_pathify
     def cov_filename(self):
-        filename = 'cov--%s--%s--covrot-%d' % (self.net_name, self.activn,
+        filename = 'cov--%s--%s--covrot-%d' % (self.net_name_nl, self.activn,
                                                self.args.covrot)
         if hasattr(self.args, 'iter') and self.args.iter is not None:
             filename += '--%d' % self.args.iter
@@ -114,7 +124,7 @@ class Params:
     @_pathify
     def alignment_filename(self):
         filename = ('covariance-alignment--%s--%s--%d'
-                    % (self.net_name, self.activn, self.args.covrot))
+                    % (self.net_name_nl, self.activn, self.args.covrot))
         if hasattr(self.args, 'iter') and self.args.iter is not None:
             filename += '--%d' % self.args.iter
         return filename + '.csv'
