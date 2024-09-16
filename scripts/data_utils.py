@@ -37,6 +37,11 @@ class MnistData:
                 os.makedirs(os.path.dirname(filename), exist_ok=True)
                 joblib.dump(self.dataset, filename)
 
+        # Leave out one digit if leave-one-out has been specified
+        if params.args.loo is not None:
+            self.dataset = [(image, label) for image, label in self.dataset
+                            if label != params.args.loo]
+
         self.traineval = traineval
         if traineval or not train:
             # Setup for evaluating performance on training or test data

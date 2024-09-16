@@ -43,6 +43,16 @@ class Params:
         if 'iter' in args_needed:
             parser.add_argument('--iter', type=int, default=0,
                                 help='Iteration number for multiple runs')
+        parser.add_argument('--loo', type=int, default=None,
+                            help=('Leave out one digit from the dataset. To be '
+                                  'used while computing covariance.'))
+        parser.add_argument('--cov-loo', type=int, default=None,
+                            help=('Use the covariance matrix computed while '
+                                  'leaving out this digit. Autoset by --loo.'))
+        if 'confusion' in args_needed:
+            parser.add_argument('--confusion', action='store_true',
+                                help=('Compute a confusion matrix. To be used '
+                                      'while testing.'))
 
         # If args_list is None (the default), this reads from sys.argv
         self.args = parser.parse_args(args=args_list)
@@ -63,6 +73,9 @@ class Params:
                             else self.default_noisy_layer)
 
         self.net_name = self.Net.__name__
+
+        if self.args.loo is not None:
+            self.args.cov_loo = self.args.loo
 
 
     def _pathify(func):
@@ -91,6 +104,8 @@ class Params:
                 filename += '-' + args.noisy
             if args.noisy != 'zero':
                 filename += '--covrot-%d' % args.covrot
+            if args.cov_loo is not None:
+                filename += '--loo-%d' % args.cov_loo
         if hasattr(args, 'reinit') and args.reinit:
             filename += '--reinit'
         if not args.noisy or args.noisy == 'zero':
@@ -112,6 +127,8 @@ class Params:
     def cov_filename(self):
         filename = 'cov--%s--%s--covrot-%d' % (self.net_name_nl, self.activn,
                                                self.args.covrot)
+        if self.args.cov_loo is not None:
+            filename += '--loo-%d' % self.args.cov_loo
         if hasattr(self.args, 'iter') and self.args.iter is not None:
             filename += '--%d' % self.args.iter
         return filename + '.npy'

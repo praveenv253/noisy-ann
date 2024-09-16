@@ -6,7 +6,7 @@ import argparse
 import numpy as np
 import torch
 import pandas as pd
-#from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix
 
 from param_utils import Params
 from data_utils import MnistData
@@ -31,17 +31,20 @@ def compute_performance(params):
             correct = (predicted == labels).sum().item()
 
         recall = correct / total
-        performance.append({'test_angle': test_angle, 'recall': recall})
-        #conf_mat = confusion_matrix(labels.numpy(), predicted.numpy())
-        #performance.append({'test_angle': test_angle, 'recall': recall,
-        #                    'conf_mat': conf_mat})
+
+        if params.args.confusion:
+            conf_mat = confusion_matrix(labels.numpy(), predicted.numpy(), normalize='true')
+            performance.append({'test_angle': test_angle, 'recall': recall,
+                                'conf_mat': conf_mat})
+        else:
+            performance.append({'test_angle': test_angle, 'recall': recall})
 
     performance = pd.DataFrame.from_records(performance).set_index('test_angle')
     return performance
 
 
 if __name__ == '__main__':
-    params = Params(args_needed=['rotate', 'noisy', 'covrot', 'iter'])
+    params = Params(args_needed=['rotate', 'noisy', 'covrot', 'iter', 'confusion'])
 
     performance = compute_performance(params)
     performance.to_pickle(params.perf_filename())
