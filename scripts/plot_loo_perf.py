@@ -47,6 +47,8 @@ if __name__ == '__main__':
     print(df)
     print(conf_mats)
 
+    old_df = df
+
     sns.set_context('notebook', font_scale=1.25)
 
     full_df = pd.melt(df, var_name='cond', value_name='Accuracy',
@@ -78,7 +80,7 @@ if __name__ == '__main__':
             base_acc = other_mats_mean[loo, loo]
 
             df.append({'test_angle': test_angle, 'loo': loo, 'loo_acc': acc,
-                       'base_acc': base_acc})
+                       'base_acc': base_acc, 'LB': old_df.loc[test_angle, 'Lower baseline']})
 
     df = pd.DataFrame.from_records(df)
     df = pd.melt(df, id_vars=['test_angle', 'loo'], value_name='acc', var_name='cond').reset_index()
